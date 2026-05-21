@@ -18,8 +18,8 @@ export const ProvinceMap: React.FC<Props> = ({ onProvinceClick }) => {
         attribution: '© OpenStreetMap'
       }).addTo(mapRef.current);
 
-      fetch('/angola-provinces.geojson')
-        .then(res => res.json())
+fetch('https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/angola.geojson')
+  .then(res => res.json())
         .then((geojson: any) => {
           const layer = L.geoJSON(geojson, {
             style: { color: '#2c3e50', weight: 1, fillOpacity: 0.2 },
