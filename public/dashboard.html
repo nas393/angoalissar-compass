@@ -1,0 +1,922 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Angoalissar — Commercial Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#05070C; --bg2:#0A0E16; --panel:#0E1320; --panel2:#141A2A;
+  --line:#1E2638; --line2:#2A3450;
+  --txt:#E6E9F0; --mut:#8993A8; --dim:#5A6378;
+  --gold:#C8A96E; --gold2:#E0C088; --green:#3DD68C; --red:#FF5C6E; --blue:#4FA8FF; --amber:#FFB547;
+  --mono:'JetBrains Mono',ui-monospace,monospace;
+  --serif:'Playfair Display',Georgia,serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--txt);font-family:Inter,system-ui,sans-serif;font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,select,textarea{font-family:inherit;color:inherit;background:transparent;border:none;outline:none}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:var(--line2);border-radius:4px}
+::-webkit-scrollbar-track{background:transparent}
+
+/* Layout */
+.app{display:grid;grid-template-rows:auto 1fr;min-height:100vh}
+.topbar{display:flex;align-items:center;gap:18px;padding:12px 22px;background:linear-gradient(180deg,#0A0E16 0%,#05070C 100%);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:50;backdrop-filter:blur(10px)}
+.brand{display:flex;align-items:center;gap:12px;font-family:var(--serif);font-size:18px;color:var(--gold)}
+.brand .dot{width:10px;height:10px;background:var(--gold);border-radius:50%;box-shadow:0 0 12px var(--gold)}
+.brand small{font-family:Inter;font-size:10px;letter-spacing:.18em;color:var(--mut);text-transform:uppercase;font-weight:500}
+.topbar .grow{flex:1}
+.clock{font-family:var(--mono);font-size:12px;color:var(--mut);padding:6px 12px;background:var(--panel);border:1px solid var(--line);border-radius:6px}
+.clock b{color:var(--gold)}
+.prov-pill{display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--panel);border:1px solid var(--line2);border-radius:6px;font-size:12px}
+.prov-pill select{font-family:var(--mono);color:var(--gold);font-size:12px;font-weight:600;cursor:pointer}
+.icon-btn{width:34px;height:34px;display:grid;place-items:center;border:1px solid var(--line);border-radius:6px;color:var(--mut);background:var(--panel);transition:.15s}
+.icon-btn:hover{color:var(--gold);border-color:var(--gold)}
+
+.layout{display:grid;grid-template-columns:280px 1fr 340px;gap:0;min-height:0}
+@media(max-width:1280px){.layout{grid-template-columns:260px 1fr}.col-right{display:none}}
+@media(max-width:900px){.layout{grid-template-columns:1fr}.col-left{display:none}.bottom-nav{display:flex !important}.topbar{padding:10px 14px}}
+
+.col-left,.col-right{background:var(--bg2);border-right:1px solid var(--line);padding:16px;overflow-y:auto;max-height:calc(100vh - 60px);position:sticky;top:60px}
+.col-right{border-right:none;border-left:1px solid var(--line)}
+.col-main{padding:20px 24px 80px;overflow-y:auto;max-height:calc(100vh - 60px)}
+
+/* Sidebar widgets */
+.widget{margin-bottom:18px}
+.widget h4{font-size:10px;letter-spacing:.18em;color:var(--mut);text-transform:uppercase;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.widget h4 .live{width:6px;height:6px;background:var(--green);border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{50%{opacity:.3}}
+
+.fx-row{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--panel);border:1px solid var(--line);border-radius:6px;margin-bottom:6px}
+.fx-row .pair{font-family:var(--mono);font-size:11px;color:var(--mut)}
+.fx-row .val{font-family:var(--mono);font-size:13px;color:var(--gold);font-weight:600}
+.fx-row .chg{font-family:var(--mono);font-size:10px;margin-left:6px}
+.up{color:var(--green)}.down{color:var(--red)}
+
+.com-row{display:flex;justify-content:space-between;padding:6px 10px;font-size:12px}
+.com-row .nm{color:var(--txt)}.com-row .pr{font-family:var(--mono);color:var(--gold)}
+.com-row .reg{font-size:9px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase}
+
+.mini-news{display:flex;flex-direction:column;gap:6px}
+.mini-news .item{padding:8px 10px;background:var(--panel);border:1px solid var(--line);border-radius:6px;cursor:pointer;transition:.15s}
+.mini-news .item:hover{border-color:var(--gold)}
+.mini-news .item .t{font-size:11.5px;line-height:1.35;color:var(--txt);margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.mini-news .item .m{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em}
+
+.prov-snap{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px;font-size:11px}
+.prov-snap .row{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px dashed var(--line)}
+.prov-snap .row:last-child{border:none}
+.prov-snap .k{color:var(--mut)}.prov-snap .v{color:var(--txt);font-weight:500}
+
+/* Main */
+.section{background:linear-gradient(180deg,var(--panel) 0%,var(--bg2) 100%);border:1px solid var(--line);border-radius:10px;padding:18px;margin-bottom:18px}
+.section-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px}
+.section-h h2{font-family:var(--serif);font-size:18px;color:var(--gold);font-weight:600}
+.section-h .ctrls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;background:var(--panel2);border:1px solid var(--line2);border-radius:6px;font-size:11.5px;color:var(--txt);transition:.15s;font-weight:500}
+.btn:hover{border-color:var(--gold);color:var(--gold)}
+.btn.primary{background:linear-gradient(135deg,var(--gold) 0%,var(--gold2) 100%);color:#0a0a0a;border-color:var(--gold);font-weight:600}
+.btn.primary:hover{color:#0a0a0a;opacity:.92}
+.btn.ghost{background:transparent}
+.sel{padding:6px 10px;background:var(--panel2);border:1px solid var(--line2);border-radius:6px;font-size:11.5px;color:var(--txt);cursor:pointer}
+.input{padding:7px 12px;background:var(--panel2);border:1px solid var(--line2);border-radius:6px;font-size:12px;color:var(--txt);min-width:200px}
+
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.kpi{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:14px;position:relative;overflow:hidden}
+.kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--gold)}
+.kpi .lbl{font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.12em;margin-bottom:6px}
+.kpi .v{font-family:var(--mono);font-size:22px;color:var(--gold);font-weight:600}
+.kpi .sub{font-size:10.5px;color:var(--dim);margin-top:4px}
+.kpi svg.spark{display:block;margin-top:6px}
+
+.news-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.news-card{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:8px;transition:.15s;cursor:pointer}
+.news-card:hover{border-color:var(--gold);transform:translateY(-1px)}
+.news-card .cat{display:inline-block;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--gold);font-weight:600}
+.news-card .ttl{font-size:13px;line-height:1.4;color:var(--txt);font-weight:500}
+.news-card .desc{font-size:11.5px;color:var(--mut);line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.news-card .meta{display:flex;justify-content:space-between;font-size:10px;color:var(--dim);margin-top:auto;padding-top:8px;border-top:1px solid var(--line)}
+.news-card .acts{display:flex;gap:6px}
+.news-card .acts button{padding:4px 8px;font-size:10px;border:1px solid var(--line2);border-radius:4px;color:var(--mut)}
+.news-card .acts button:hover{color:var(--gold);border-color:var(--gold)}
+
+.ai-out{background:#070A12;border:1px solid var(--line2);border-radius:6px;padding:14px;font-size:12.5px;line-height:1.65;color:var(--txt);white-space:pre-wrap;max-height:540px;overflow-y:auto;margin-top:12px;font-family:Inter}
+.ai-out:empty{display:none}
+.ai-out h1,.ai-out h2,.ai-out h3{font-family:var(--serif);color:var(--gold);margin:14px 0 8px}
+.ai-out strong{color:var(--gold2)}
+.ai-out code{background:var(--panel2);padding:1px 5px;border-radius:3px;font-family:var(--mono);font-size:11px;color:var(--amber)}
+.ai-empty{padding:18px;text-align:center;color:var(--dim);font-size:11.5px;font-style:italic}
+
+.tone-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.tone-row label{font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.1em}
+textarea.input{min-height:90px;padding:10px 12px;resize:vertical;width:100%}
+
+.tag{display:inline-block;padding:2px 7px;background:var(--panel2);border:1px solid var(--line2);border-radius:10px;font-size:9.5px;color:var(--mut);text-transform:uppercase;letter-spacing:.08em;margin-right:4px}
+
+/* Toast */
+.toast-wrap{position:fixed;top:80px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{background:var(--panel2);border:1px solid var(--gold);border-radius:6px;padding:10px 14px;font-size:12px;color:var(--txt);box-shadow:0 8px 32px rgba(0,0,0,.5);animation:slidein .25s ease;pointer-events:auto;min-width:240px}
+.toast.err{border-color:var(--red)}
+.toast.ok{border-color:var(--green)}
+@keyframes slidein{from{transform:translateX(20px);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* Modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-bg.show{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--line2);border-radius:12px;max-width:720px;width:100%;max-height:88vh;overflow-y:auto;padding:24px}
+.modal h3{font-family:var(--serif);color:var(--gold);font-size:20px;margin-bottom:14px}
+.modal .close{float:right;font-size:22px;color:var(--mut)}
+.col-chk{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.col-chk label{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;background:var(--panel2);border:1px solid var(--line2);border-radius:5px;font-size:11px;cursor:pointer}
+.col-chk input{accent-color:var(--gold)}
+
+/* Bottom nav (mobile) */
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--panel);border-top:1px solid var(--line2);padding:8px;justify-content:space-around;z-index:100}
+.bottom-nav button{padding:6px 10px;font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.1em}
+.bottom-nav button.act{color:var(--gold)}
+
+.empty{padding:30px;text-align:center;color:var(--dim);font-size:12px;font-style:italic}
+.row-flex{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.divider{height:1px;background:var(--line);margin:14px 0}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="brand"><span class="dot"></span>
+      <div>Angoalissar <small style="display:block;margin-top:2px">Commercial Intelligence · Webcor Group</small></div>
+    </div>
+    <div class="grow"></div>
+    <div class="prov-pill">📍 <select id="topProv"></select></div>
+    <div class="clock" id="clock">Luanda · <b>--:--:--</b></div>
+    <button class="icon-btn" id="btnSettings" title="Settings">⚙</button>
+  </header>
+
+  <div class="layout">
+    <!-- LEFT SIDEBAR -->
+    <aside class="col-left">
+      <div class="widget">
+        <h4>Province <span style="margin-left:auto;font-size:9px;color:var(--gold)" id="provName">Luanda</span></h4>
+        <div class="prov-snap" id="provSnap"></div>
+      </div>
+
+      <div class="widget">
+        <h4><span class="live"></span> FX Live · AOA</h4>
+        <div id="fxList"></div>
+      </div>
+
+      <div class="widget">
+        <h4>Commodities <span style="margin-left:auto;font-size:9px;color:var(--dim)" id="comReg">Global</span></h4>
+        <div id="comList"></div>
+      </div>
+
+      <div class="widget">
+        <h4>Regional Feed</h4>
+        <div class="mini-news" id="miniNews"></div>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="col-main">
+      <!-- KPIs -->
+      <section class="section">
+        <div class="section-h">
+          <h2>Market Pulse — <span id="kpiProv" style="color:var(--gold2)">Luanda</span></h2>
+          <div class="ctrls">
+            <button class="btn ghost" id="btnRefresh">↻ Refresh</button>
+            <span class="tag" id="lastUpd">just now</span>
+          </div>
+        </div>
+        <div class="kpi-grid" id="kpis"></div>
+      </section>
+
+      <!-- AI Briefing -->
+      <section class="section">
+        <div class="section-h">
+          <h2>AI Strategic Briefing</h2>
+          <div class="ctrls">
+            <label class="tag">Tone</label>
+            <select class="sel" id="briefTone">
+              <option value="executive">Executive</option>
+              <option value="analyst">Analyst</option>
+              <option value="boardroom">Boardroom</option>
+              <option value="operations">Operations</option>
+            </select>
+            <select class="sel" id="briefHorizon">
+              <option value="48h">48h</option>
+              <option value="7d" selected>7 days</option>
+              <option value="30d">30 days</option>
+              <option value="quarter">Quarter</option>
+            </select>
+            <button class="btn primary" id="btnBrief">⚡ Generate</button>
+          </div>
+        </div>
+        <div class="ai-empty" id="briefEmpty">Generate a province-scoped briefing combining live FX, commodity moves, and news intel.</div>
+        <div class="ai-out" id="briefOut"></div>
+        <div class="row-flex" id="briefActs" style="margin-top:10px;display:none">
+          <button class="btn" onclick="saveAIResult('brief')">💾 Save to Saved</button>
+          <button class="btn ghost" onclick="copyAI('briefOut')">📋 Copy</button>
+        </div>
+      </section>
+
+      <!-- Devil's Advocate -->
+      <section class="section">
+        <div class="section-h">
+          <h2>Devil's Advocate</h2>
+          <div class="ctrls">
+            <label class="tag">Tone</label>
+            <select class="sel" id="devTone">
+              <option value="hostile">Hostile</option>
+              <option value="rigorous" selected>Rigorous</option>
+              <option value="socratic">Socratic</option>
+              <option value="boardroom">Boardroom</option>
+            </select>
+            <label class="tag">Intensity</label>
+            <select class="sel" id="devInt">
+              <option>Low</option><option selected>Medium</option><option>High</option><option>Brutal</option>
+            </select>
+          </div>
+        </div>
+        <textarea class="input" id="devInput" placeholder="State your commercial decision, e.g. 'Raise rice retail price by 8% in Benguela next month and shift 3 reefers from Lobito to Namibe.'"></textarea>
+        <div class="row-flex" style="margin-top:10px">
+          <button class="btn primary" id="btnDev">🔥 Challenge it</button>
+          <button class="btn ghost" id="btnDevClr">Clear</button>
+        </div>
+        <div class="ai-out" id="devOut"></div>
+        <div class="row-flex" id="devActs" style="margin-top:10px;display:none">
+          <button class="btn" onclick="saveAIResult('dev')">💾 Save to Saved</button>
+          <button class="btn ghost" onclick="copyAI('devOut')">📋 Copy</button>
+        </div>
+      </section>
+
+      <!-- News -->
+      <section class="section">
+        <div class="section-h">
+          <h2>News & Signals</h2>
+          <div class="ctrls">
+            <input class="input" id="newsSearch" placeholder="Search title / source…"/>
+            <select class="sel" id="newsCat">
+              <option value="">All categories</option>
+              <option>macro</option><option>commodities</option><option>logistics</option>
+              <option>competitors</option><option>regulation</option><option>fmcg</option>
+            </select>
+            <button class="btn ghost" id="btnReloadNews">↻</button>
+          </div>
+        </div>
+        <div class="news-grid" id="newsGrid"></div>
+      </section>
+
+      <!-- Saved -->
+      <section class="section">
+        <div class="section-h">
+          <h2>Saved · <span id="savedCount" style="color:var(--gold2)">0</span></h2>
+          <div class="ctrls">
+            <input class="input" id="savedSearch" placeholder="Filter saved…" style="min-width:170px"/>
+            <select class="sel" id="savedType">
+              <option value="">All types</option>
+              <option value="article">Articles</option>
+              <option value="ai">AI Output</option>
+            </select>
+            <button class="btn" id="btnExportCsv">⬇ Export CSV…</button>
+            <button class="btn ghost" id="btnClearSaved">🗑</button>
+          </div>
+        </div>
+        <div id="savedList"></div>
+      </section>
+    </main>
+
+    <!-- RIGHT -->
+    <aside class="col-right">
+      <div class="widget">
+        <h4>Key Risks · <span id="riskProv" style="color:var(--gold)">Luanda</span></h4>
+        <div id="riskList" style="display:flex;flex-direction:column;gap:6px"></div>
+      </div>
+      <div class="widget">
+        <h4>Top Competitors</h4>
+        <div id="compList" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+      </div>
+      <div class="widget">
+        <h4>Channel Mix</h4>
+        <div id="chanList"></div>
+      </div>
+      <div class="widget">
+        <h4>Quick Notes</h4>
+        <textarea class="input" id="qNotes" placeholder="Daily notes (auto-saved)…" style="min-height:120px;width:100%"></textarea>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toasts"></div>
+
+<!-- Settings Modal -->
+<div class="modal-bg" id="setModal">
+  <div class="modal">
+    <button class="close" onclick="closeModal('setModal')">×</button>
+    <h3>Settings</h3>
+    <p style="color:var(--mut);font-size:11.5px;margin-bottom:14px">Configure Anthropic API key for Claude (AI Briefing + Devil's Advocate). Stored locally only.</p>
+    <label style="font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.1em">Anthropic API Key</label>
+    <input class="input" id="apiKeyIn" placeholder="sk-ant-…" style="width:100%;margin-top:6px;font-family:var(--mono);font-size:11px"/>
+    <label style="font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.1em;margin-top:14px;display:block">Claude Model</label>
+    <select class="sel" id="modelSel" style="width:100%;margin-top:6px">
+      <option value="claude-sonnet-4-5-20250929">Claude Sonnet 4.5 (recommended)</option>
+      <option value="claude-opus-4-20250514">Claude Opus 4</option>
+      <option value="claude-3-5-haiku-20241022">Claude 3.5 Haiku (fast/cheap)</option>
+    </select>
+    <div style="display:flex;gap:8px;margin-top:18px">
+      <button class="btn primary" onclick="saveKey()">Save</button>
+      <button class="btn ghost" onclick="closeModal('setModal')">Cancel</button>
+    </div>
+    <div class="divider"></div>
+    <p style="font-size:10.5px;color:var(--dim)">Note: Calls go directly from your browser to Anthropic. Use a key with appropriate spend limits. Without a key, the dashboard still runs (FX, news, sim, saved, CSV export).</p>
+  </div>
+</div>
+
+<!-- CSV Export Modal -->
+<div class="modal-bg" id="csvModal">
+  <div class="modal" style="max-width:540px">
+    <button class="close" onclick="closeModal('csvModal')">×</button>
+    <h3>Export Saved · CSV</h3>
+    <p style="color:var(--mut);font-size:11.5px;margin-bottom:10px">Choose scope and columns. UTF-8 BOM included for Excel.</p>
+    <label style="font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.1em">Scope</label>
+    <select class="sel" id="csvScope" style="width:100%;margin:6px 0 14px">
+      <option value="all">All saved items</option>
+      <option value="filtered" selected>Match current Saved filter / search</option>
+      <option value="article">Articles only</option>
+      <option value="ai">AI outputs only</option>
+    </select>
+    <label style="font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.1em">Columns</label>
+    <div class="col-chk" id="csvCols"></div>
+    <div style="display:flex;gap:8px;margin-top:18px">
+      <button class="btn primary" onclick="doExport()">⬇ Download CSV</button>
+      <button class="btn ghost" onclick="closeModal('csvModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Article modal -->
+<div class="modal-bg" id="artModal">
+  <div class="modal" id="artBody"></div>
+</div>
+
+<script>
+/* ============== DATA ============== */
+const PROVINCES = {
+  'Luanda':    {pop:'9.0M', share:'34%', risk:['port congestion','FX scarcity','informal channel pricing'], comp:['Score','Maxi','Kero','Candando','Shoprite'], chan:{Retail:42,Wholesale:31,Cantinas:18,HoReCa:9}, assume:'Premium-skew urban demand; reefer corridors Luanda→interior; AOA settlement delays 5-9 days.'},
+  'Benguela':  {pop:'2.4M', share:'12%', risk:['fuel logistics','SME credit risk'], comp:['Score','Kero','Local distributors'], chan:{Retail:38,Wholesale:36,Cantinas:22,HoReCa:4}, assume:'Coastal+agri mix; Port Lobito reefer tightness; Q3 fishing season demand spike.'},
+  'Huíla':     {pop:'2.7M', share:'9%',  risk:['drought impact','rural FX access'], comp:['Local distributors','Maxi'], chan:{Retail:31,Wholesale:42,Cantinas:25,HoReCa:2}, assume:'Cattle/agri economy; Lubango hub; corridor from Namibe port; seasonal maize swap.'},
+  'Huambo':    {pop:'2.5M', share:'8%',  risk:['rail throughput Lobito corridor','rural payment cycles'], comp:['Local distributors','Maxi'], chan:{Retail:33,Wholesale:40,Cantinas:24,HoReCa:3}, assume:'Lobito Atlantic Railway corridor key; agri rebuild zone; AOA cash dominant.'},
+  'Cabinda':   {pop:'0.7M', share:'5%',  risk:['oil-FX dependency','enclave logistics'], comp:['Score','Local distributors'], chan:{Retail:48,Wholesale:24,Cantinas:18,HoReCa:10}, assume:'Oil enclave; premium SKU appetite; USD informal circulation; sea/air-only access.'},
+  'Namibe':    {pop:'0.6M', share:'4%',  risk:['drought','port capacity ramp'], comp:['Local distributors'], chan:{Retail:35,Wholesale:40,Cantinas:23,HoReCa:2}, assume:'Port Namibe growth corridor; fish exports; arid hinterland low elasticity.'},
+  'Lobito':    {pop:'1.0M', share:'6%',  risk:['reefer slot scarcity','rail vs road arbitrage'], comp:['Score','Maxi','Local'], chan:{Retail:40,Wholesale:34,Cantinas:22,HoReCa:4}, assume:'Lobito Corridor logistics hub; DRC/Zambia transit flows; reefer capacity premium.'},
+  'Malanje':   {pop:'1.0M', share:'4%',  risk:['road condition seasonal','low retail density'], comp:['Local'], chan:{Retail:28,Wholesale:44,Cantinas:26,HoReCa:2}, assume:'Agri belt; sugar/cassava local supply competition; wholesaler-led.'},
+  'Uíge':      {pop:'1.5M', share:'4%',  risk:['border informal trade DRC','currency leakage'], comp:['Local','DRC importers'], chan:{Retail:30,Wholesale:42,Cantinas:26,HoReCa:2}, assume:'DRC border informal trade; AOA/CDF parallel; coffee zone.'},
+  'Cuanza Sul':{pop:'2.0M', share:'5%',  risk:['rural reach cost','seasonal road closure'], comp:['Local'], chan:{Retail:32,Wholesale:40,Cantinas:26,HoReCa:2}, assume:'Sumbe coastal; agri inland; mixed road infra; Q4 demand peak.'},
+  'Bié':       {pop:'1.6M', share:'3%',  risk:['low GDP/capita','distribution cost'], comp:['Local'], chan:{Retail:25,Wholesale:46,Cantinas:27,HoReCa:2}, assume:'Central plateau; subsistence economy; wholesaler-cantina dominated; price-elastic.'},
+  'Zaire':     {pop:'0.7M', share:'3%',  risk:['border DRC','oil sector volatility'], comp:['Local','DRC'], chan:{Retail:34,Wholesale:38,Cantinas:24,HoReCa:4}, assume:'Soyo gas/oil; Mbanza Kongo border; cross-border SKU arbitrage.'}
+};
+
+const FX_PAIRS = [
+  {code:'USD', label:'USD/AOA'},
+  {code:'EUR', label:'EUR/AOA'},
+  {code:'BRL', label:'BRL/AOA'},
+  {code:'CNY', label:'CNY/AOA'},
+  {code:'ZAR', label:'ZAR/AOA'},
+];
+
+const COMMODITIES = [
+  {k:'Wheat',  base:265, unit:'$/t'},
+  {k:'Rice',   base:578, unit:'$/t'},
+  {k:'Sugar',  base:512, unit:'$/t'},
+  {k:'Palm Oil',base:945,unit:'$/t'},
+  {k:'Maize',  base:198, unit:'$/t'},
+  {k:'Brent',  base:78.4,unit:'$/bbl'},
+];
+
+const NEWS_FALLBACK = [
+  {t:'Angola central bank holds policy rate amid kwanza pressure',d:'BNA signals continued FX intervention as importers face settlement delays.',s:'Reuters',c:'macro',pr:['Luanda','Benguela']},
+  {t:'Lobito Corridor reefer capacity tightens ahead of harvest',d:'Rail-vs-road arbitrage widens; FMCG importers report 3-5 day delays.',s:'FT',c:'logistics',pr:['Lobito','Huambo','Bié']},
+  {t:'Global wheat falls on improved Black Sea outlook',d:'CBOT wheat down 2.1% on stronger Russian export pace.',s:'Reuters',c:'commodities',pr:['*']},
+  {t:'Shoprite expands private-label rice in Luanda',d:'House brand under-prices imports by 7-9%, pressuring wholesale margins.',s:'DW',c:'competitors',pr:['Luanda','Benguela']},
+  {t:'Angola customs to digitize FMCG manifests',d:'AGT pilots e-manifest in Luanda port; could cut clearance 1.5 days.',s:'AngolaGov',c:'regulation',pr:['Luanda']},
+  {t:'Namibe port throughput up 14% YoY',d:'Fish + reefer slots show capacity headroom for FMCG diversion.',s:'PortReview',c:'logistics',pr:['Namibe','Huíla']},
+  {t:'Palm oil rallies on Indonesia export curb chatter',d:'CPO futures +3.4%; cooking-oil pass-through risk in Angola Q2.',s:'Reuters',c:'commodities',pr:['*']},
+  {t:'Cabinda enclave sees USD-denominated retail uptick',d:'Premium FMCG SKUs gain shelf share in oil-worker corridors.',s:'Local',c:'fmcg',pr:['Cabinda']},
+  {t:'Huíla drought watch issued for late season',d:'Maize/sorghum yield forecast trimmed; substitution demand for imported staples.',s:'FAO',c:'macro',pr:['Huíla','Huambo','Bié']},
+  {t:'Maxi opens 3rd store in Huambo',d:'Modern-trade expansion accelerates outside Luanda; SKU listing windows tighten.',s:'Local',c:'competitors',pr:['Huambo','Bié']},
+  {t:'BRL weakens vs USD, narrowing AO import edge from Brazil',d:'Sugar/poultry cost basis shift; revisit supplier mix.',s:'Reuters',c:'macro',pr:['*']},
+  {t:'Uíge border informal trade with DRC intensifies',d:'CDF/AOA spread fuels grey-market FMCG flows; pricing distortions reported.',s:'Local',c:'regulation',pr:['Uíge','Zaire']},
+];
+
+/* ============ STATE ============ */
+const LS = (k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch{return d}};
+const SS = (k,v)=>localStorage.setItem(k,JSON.stringify(v));
+
+const State = {
+  province: LS('ang_prov','Luanda'),
+  fx: {}, fxHist: LS('ang_fxhist',{}),
+  com: LS('ang_com',{}),
+  news: [],
+  saved: LS('ang_saved',[]),
+  apiKey: LS('ang_key',''),
+  model: LS('ang_model','claude-sonnet-4-5-20250929'),
+  notes: LS('ang_notes',''),
+  lastBrief: null,
+  lastDev: null,
+};
+
+/* ============ HELPERS ============ */
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+const fmt = n => Number(n).toLocaleString('en-US',{maximumFractionDigits:2});
+const toast = (msg,type='') => {
+  const w=$('#toasts'), el=document.createElement('div');
+  el.className='toast '+type; el.textContent=msg;
+  w.appendChild(el); setTimeout(()=>el.remove(),3800);
+};
+const closeModal = id => $('#'+id).classList.remove('show');
+const openModal = id => $('#'+id).classList.add('show');
+const copyAI = id => {navigator.clipboard.writeText($('#'+id).innerText); toast('Copied to clipboard','ok')};
+
+/* ============ CLOCK ============ */
+function tickClock(){
+  const d = new Date();
+  const luanda = new Date(d.toLocaleString('en-US',{timeZone:'Africa/Luanda'}));
+  const hh = String(luanda.getHours()).padStart(2,'0');
+  const mm = String(luanda.getMinutes()).padStart(2,'0');
+  const ss = String(luanda.getSeconds()).padStart(2,'0');
+  $('#clock').innerHTML = `Luanda · <b>${hh}:${mm}:${ss}</b>`;
+}
+setInterval(tickClock,1000); tickClock();
+
+/* ============ PROVINCE ============ */
+function provNames(){return Object.keys(PROVINCES)}
+function fillProvSelects(){
+  const opts = provNames().map(p=>`<option value="${p}" ${p===State.province?'selected':''}>${p}</option>`).join('');
+  $('#topProv').innerHTML = opts;
+}
+function renderProvinceUI(){
+  const p = PROVINCES[State.province];
+  $('#provName').textContent = State.province;
+  $('#kpiProv').textContent = State.province;
+  $('#riskProv').textContent = State.province;
+  $('#comReg').textContent = State.province;
+  $('#provSnap').innerHTML = `
+    <div class="row"><span class="k">Population</span><span class="v">${p.pop}</span></div>
+    <div class="row"><span class="k">Market share</span><span class="v">${p.share}</span></div>
+    <div class="row"><span class="k">Top channel</span><span class="v">${Object.entries(p.chan).sort((a,b)=>b[1]-a[1])[0][0]}</span></div>
+    <div class="row"><span class="k">Assumption</span><span class="v" style="font-size:10.5px">${p.assume.slice(0,90)}…</span></div>
+  `;
+  $('#riskList').innerHTML = p.risk.map(r=>`<div style="padding:7px 10px;background:var(--panel);border-left:3px solid var(--red);border-radius:4px;font-size:11.5px">⚠ ${r}</div>`).join('');
+  $('#compList').innerHTML = p.comp.map(c=>`<span class="tag" style="background:var(--panel2);color:var(--gold2);border-color:var(--gold)">${c}</span>`).join('');
+  $('#chanList').innerHTML = Object.entries(p.chan).map(([k,v])=>`
+    <div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px"><span>${k}</span><span style="color:var(--gold);font-family:var(--mono)">${v}%</span></div>
+    <div style="height:4px;background:var(--panel);border-radius:2px;overflow:hidden"><div style="width:${v}%;height:100%;background:linear-gradient(90deg,var(--gold),var(--gold2))"></div></div></div>
+  `).join('');
+  renderMiniNews();
+  renderKPIs();
+}
+
+/* ============ FX ============ */
+async function loadFX(){
+  try{
+    const r = await fetch('https://open.er-api.com/v6/latest/USD');
+    const j = await r.json();
+    if(j.result!=='success') throw new Error('FX failed');
+    const usdAoa = j.rates.AOA;
+    FX_PAIRS.forEach(p=>{
+      let rate;
+      if(p.code==='USD') rate = usdAoa;
+      else rate = usdAoa / j.rates[p.code];
+      State.fx[p.code] = rate;
+      if(!State.fxHist[p.code]) State.fxHist[p.code]=[];
+      State.fxHist[p.code].push({t:Date.now(),v:rate});
+      if(State.fxHist[p.code].length>60) State.fxHist[p.code].shift();
+    });
+    SS('ang_fxhist',State.fxHist);
+    renderFX();
+    $('#lastUpd').textContent = 'FX updated · '+new Date().toLocaleTimeString();
+  }catch(e){
+    if(Object.keys(State.fx).length===0){
+      // fallback static
+      const fallback = {USD:912, EUR:985, BRL:165, CNY:127, ZAR:49};
+      Object.entries(fallback).forEach(([k,v])=>{State.fx[k]=v; State.fxHist[k]=[{t:Date.now(),v}]});
+      renderFX();
+    }
+    toast('FX live fetch failed — showing cache','err');
+  }
+}
+function renderFX(){
+  $('#fxList').innerHTML = FX_PAIRS.map(p=>{
+    const v = State.fx[p.code]||0;
+    const hist = State.fxHist[p.code]||[];
+    const prev = hist.length>1 ? hist[hist.length-2].v : v;
+    const chg = prev? ((v-prev)/prev*100):0;
+    const cls = chg>=0?'up':'down';
+    const arr = chg>=0?'▲':'▼';
+    return `<div class="fx-row"><span class="pair">${p.label}</span>
+      <span><span class="val">${fmt(v)}</span><span class="chg ${cls}">${arr} ${Math.abs(chg).toFixed(2)}%</span></span></div>`;
+  }).join('');
+  renderKPIs();
+}
+
+/* ============ COMMODITIES ============ */
+function simCom(){
+  COMMODITIES.forEach(c=>{
+    if(!State.com[c.k]) State.com[c.k] = {p:c.base, h:[c.base]};
+    const drift = (Math.random()-0.48)*c.base*0.012;
+    State.com[c.k].p = Math.max(c.base*0.7, Math.min(c.base*1.4, State.com[c.k].p + drift));
+    State.com[c.k].h.push(State.com[c.k].p);
+    if(State.com[c.k].h.length>40) State.com[c.k].h.shift();
+  });
+  SS('ang_com',State.com);
+  renderCom();
+}
+function renderCom(){
+  const provModifier = 1 + ((State.province.charCodeAt(0)%5)-2)*0.005; // small per-province delivered-basis tweak
+  $('#comList').innerHTML = COMMODITIES.map(c=>{
+    const s = State.com[c.k]; if(!s) return '';
+    const adj = s.p * provModifier;
+    const hist = s.h;
+    const prev = hist.length>1?hist[hist.length-2]:s.p;
+    const chg = (s.p-prev)/prev*100;
+    return `<div class="com-row"><div><div class="nm">${c.k} <span class="reg">${State.province} basis</span></div></div>
+      <div style="text-align:right"><div class="pr">${fmt(adj)} <span style="color:var(--dim);font-size:10px">${c.unit}</span></div>
+      <div class="chg ${chg>=0?'up':'down'}" style="font-size:10px">${chg>=0?'+':''}${chg.toFixed(2)}%</div></div></div>`;
+  }).join('');
+  renderKPIs();
+}
+
+/* ============ KPIs ============ */
+function renderKPIs(){
+  const p = PROVINCES[State.province];
+  const usd = State.fx.USD||0, eur=State.fx.EUR||0;
+  const wheat = State.com.Wheat?State.com.Wheat.p:0;
+  const items = [
+    {l:'USD/AOA', v:fmt(usd), s:'Spot · interbank'},
+    {l:'EUR/AOA', v:fmt(eur), s:'Spot · interbank'},
+    {l:'Market share', v:p.share, s:State.province+' · est.'},
+    {l:'Wheat $/t', v:fmt(wheat), s:'CIF basis proxy'},
+    {l:'Top channel', v:Object.entries(p.chan).sort((a,b)=>b[1]-a[1])[0][1]+'%', s:Object.entries(p.chan).sort((a,b)=>b[1]-a[1])[0][0]},
+    {l:'Saved items', v:State.saved.length, s:'AI + articles'},
+  ];
+  $('#kpis').innerHTML = items.map(k=>`<div class="kpi"><div class="lbl">${k.l}</div><div class="v">${k.v}</div><div class="sub">${k.s}</div></div>`).join('');
+}
+
+/* ============ NEWS ============ */
+function provFilter(item){
+  return item.pr.includes('*') || item.pr.includes(State.province);
+}
+function loadNews(){
+  State.news = NEWS_FALLBACK.map((n,i)=>({...n,id:'n'+i,date:new Date(Date.now()-i*3600e3).toISOString()}));
+  renderNews(); renderMiniNews();
+}
+function renderMiniNews(){
+  const items = State.news.filter(provFilter).slice(0,6);
+  $('#miniNews').innerHTML = items.length? items.map(n=>`
+    <div class="item" onclick="openArt('${n.id}')">
+      <div class="t">${n.t}</div>
+      <div class="m">${n.s} · ${n.c}</div>
+    </div>`).join('') : `<div class="empty" style="padding:12px">No regional items.</div>`;
+}
+function renderNews(){
+  const q = ($('#newsSearch').value||'').toLowerCase();
+  const cat = $('#newsCat').value;
+  const items = State.news.filter(n=>{
+    if(cat && n.c!==cat) return false;
+    if(q && !(n.t.toLowerCase().includes(q)||n.s.toLowerCase().includes(q))) return false;
+    return true;
+  });
+  $('#newsGrid').innerHTML = items.length? items.map(n=>`
+    <div class="news-card">
+      <div style="display:flex;justify-content:space-between"><span class="cat">${n.c}</span>
+        <span style="font-size:10px;color:${n.pr.includes(State.province)?'var(--gold)':'var(--dim)'}">${n.pr.includes(State.province)?'● '+State.province:n.pr.includes('*')?'global':n.pr[0]}</span>
+      </div>
+      <div class="ttl" onclick="openArt('${n.id}')">${n.t}</div>
+      <div class="desc">${n.d}</div>
+      <div class="meta">
+        <span>${n.s} · ${new Date(n.date).toLocaleDateString()}</span>
+        <span class="acts">
+          <button onclick="saveArticle('${n.id}')">💾 Save</button>
+          <button onclick="openArt('${n.id}')">↗</button>
+        </span>
+      </div>
+    </div>`).join('') : `<div class="empty">No news match filters.</div>`;
+}
+function openArt(id){
+  const n = State.news.find(x=>x.id===id); if(!n) return;
+  $('#artBody').innerHTML = `
+    <button class="close" onclick="closeModal('artModal')">×</button>
+    <h3>${n.t}</h3>
+    <div style="display:flex;gap:6px;margin-bottom:14px"><span class="tag">${n.c}</span><span class="tag">${n.s}</span><span class="tag">${n.pr.join(', ')}</span></div>
+    <p style="color:var(--mut);line-height:1.7">${n.d}</p>
+    <div class="divider"></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn primary" onclick="saveArticle('${n.id}');closeModal('artModal')">💾 Save Article</button>
+      <button class="btn" onclick="analyzeArt('${n.id}')">🔍 Analyze with AI</button>
+    </div>
+    <div class="ai-out" id="artAi" style="margin-top:14px"></div>
+  `;
+  openModal('artModal');
+}
+function saveArticle(id){
+  const n = State.news.find(x=>x.id===id); if(!n) return;
+  if(State.saved.find(s=>s.refId===id && s.type==='article')){toast('Already saved','');return}
+  State.saved.unshift({
+    id:'s'+Date.now(),
+    type:'article',
+    refId:id,
+    title:n.t,
+    category:n.c,
+    source:n.s,
+    description:n.d,
+    province:State.province,
+    date:n.date,
+    savedAt:new Date().toISOString(),
+  });
+  SS('ang_saved',State.saved); renderSaved(); toast('Article saved','ok');
+}
+async function analyzeArt(id){
+  const n = State.news.find(x=>x.id===id);
+  const out = $('#artAi'); out.textContent='Analyzing…';
+  const prompt = `Analyze this market signal for Angoalissar (FMCG importer, ${State.province} province focus):\n\nTitle: ${n.t}\n${n.d}\nSource: ${n.s}\n\n${provContext()}\n\nProvide: (1) immediate commercial impact 0-30d, (2) 2-3 concrete actions for ${State.province}, (3) one quantified risk.`;
+  try{
+    const txt = await callClaude(prompt,'You are a sharp FMCG commercial analyst for Angola.');
+    out.innerHTML = mdRender(txt);
+  }catch(e){out.textContent='Error: '+e.message}
+}
+
+/* ============ PROVINCE CONTEXT (for Claude) ============ */
+function provContext(){
+  const p = PROVINCES[State.province];
+  const fxLine = FX_PAIRS.map(fp=>`${fp.code}/AOA ${fmt(State.fx[fp.code]||0)}`).join(' · ');
+  const comLine = COMMODITIES.map(c=>`${c.k} ${fmt(State.com[c.k]?State.com[c.k].p:c.base)} ${c.unit}`).join(' · ');
+  const relevantNews = State.news.filter(provFilter).slice(0,5).map(n=>`- [${n.c}] ${n.t} (${n.s})`).join('\n');
+  return `## PROVINCE CONTEXT — ${State.province}
+- Population: ${p.pop} | Est. market share: ${p.share}
+- Channel mix: ${Object.entries(p.chan).map(([k,v])=>`${k} ${v}%`).join(', ')}
+- Key risks: ${p.risk.join('; ')}
+- Top competitors: ${p.comp.join(', ')}
+- Province assumptions: ${p.assume}
+
+## LIVE SNAPSHOT (as of ${new Date().toISOString()})
+- FX vs AOA: ${fxLine}
+- Commodities (CIF proxy, ${State.province} delivered basis): ${comLine}
+
+## RECENT REGIONAL SIGNALS
+${relevantNews||'(no province-specific items)'}\n`;
+}
+
+/* ============ AI: BRIEFING ============ */
+const BRIEF_TONES = {
+  executive:'Crisp executive tone. Direct, decisive, no hedging. Bullet-heavy.',
+  analyst:  'Rigorous analyst tone. Cite numbers, name mechanisms, flag uncertainty bands.',
+  boardroom:'Boardroom tone. Strategic, framed for Director/CEO. Emphasize P&L and risk.',
+  operations:'Operations tone. Concrete SKU/route/inventory specifics. Action-first.',
+};
+async function genBrief(){
+  if(!State.apiKey){toast('Set Anthropic API key in Settings','err');openModal('setModal');return}
+  const tone = $('#briefTone').value, horizon = $('#briefHorizon').value;
+  $('#briefEmpty').style.display='none';
+  $('#briefOut').innerHTML='<span style="color:var(--mut)">Generating briefing…</span>';
+  $('#briefActs').style.display='none';
+  const sys = `You are senior commercial strategy advisor to Nassim Watfa, Commercial Director of Angoalissar Lda (Webcor Group), an FMCG importer/distributor in Angola. ${BRIEF_TONES[tone]}`;
+  const prompt = `Produce a strategic briefing for ${State.province} on a ${horizon} horizon.\n\n${provContext()}\n\nReturn EXACTLY these 6 sections (markdown headers):\n## 1. Executive Summary (3 bullets)\n## 2. FX & Cost Basis Impact (quantify pass-through to ${State.province} delivered prices)\n## 3. Province-Specific SKU Threats (name 2-3 SKUs at risk in ${State.province}; cite competitor + channel)\n## 4. Three Concrete Moves (each with: action, owner, KPI, decision deadline)\n## 5. One Thing to NOT Do (with reason)\n## 6. Watchlist (3 signals to monitor next ${horizon})\n\nGround every claim in the snapshot above. Be specific. No generic platitudes.`;
+  try{
+    const txt = await callClaude(prompt,sys);
+    State.lastBrief = {text:txt,tone,horizon,province:State.province,at:new Date().toISOString()};
+    $('#briefOut').innerHTML = mdRender(txt);
+    $('#briefActs').style.display='flex';
+  }catch(e){
+    $('#briefOut').innerHTML = `<span style="color:var(--red)">${e.message}</span>`;
+  }
+}
+
+/* ============ AI: DEVIL'S ADVOCATE ============ */
+const DEVIL_TONES = {
+  hostile:'Hostile, adversarial tone. Treat the user as wrong until proven otherwise. Cut hard.',
+  rigorous:'Rigorous critical tone. Stress-test logic, demand evidence, flag assumption risk.',
+  socratic:'Socratic tone. Ask sharp questions that expose flaws; minimal direct assertions.',
+  boardroom:'Boardroom challenger tone. Frame critique for an Investment Committee.',
+};
+async function genDev(){
+  if(!State.apiKey){toast('Set Anthropic API key in Settings','err');openModal('setModal');return}
+  const decision = $('#devInput').value.trim();
+  if(!decision){toast('State a decision first','err');return}
+  const tone = $('#devTone').value, intensity = $('#devInt').value;
+  $('#devOut').innerHTML='<span style="color:var(--mut)">Challenging…</span>';
+  $('#devActs').style.display='none';
+  const sys = `You are a Devil's Advocate to Angoalissar's Commercial Director. ${DEVIL_TONES[tone]} Intensity: ${intensity}. Never agree. Always find the flaw. Anchor every counter-point in concrete Angola FMCG reality and the province snapshot below.`;
+  const prompt = `Commercial decision to challenge:\n"""${decision}"""\n\n${provContext()}\n\nRespond in EXACTLY this structure:\n\n## ① Core Flaw\n(1-2 sentences — the single biggest reason this decision is wrong or fragile)\n\n## ② Counter-Points (5-7)\n(each anchored in ${State.province} reality: cite a competitor, a channel %, a FX/commodity number, or a named risk above)\n\n## ③ Second-Order Effects (3)\n(what breaks downstream in 30-90 days that the decision-maker hasn't priced in)\n\n## ④ Alternative Move\n(one concrete alternative that achieves the same intent with less downside — include KPI and 30-day check)`;
+  try{
+    const txt = await callClaude(prompt,sys);
+    State.lastDev = {text:txt,tone,intensity,decision,province:State.province,at:new Date().toISOString()};
+    $('#devOut').innerHTML = mdRender(txt);
+    $('#devActs').style.display='flex';
+  }catch(e){
+    $('#devOut').innerHTML = `<span style="color:var(--red)">${e.message}</span>`;
+  }
+}
+
+/* ============ CLAUDE API ============ */
+async function callClaude(prompt, system){
+  const body = {
+    model: State.model,
+    max_tokens: 2200,
+    system,
+    messages:[{role:'user',content:prompt}],
+  };
+  const r = await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{
+      'content-type':'application/json',
+      'x-api-key':State.apiKey,
+      'anthropic-version':'2023-06-01',
+      'anthropic-dangerous-direct-browser-access':'true',
+    },
+    body:JSON.stringify(body),
+  });
+  if(!r.ok){
+    const t = await r.text();
+    throw new Error(`Claude ${r.status}: ${t.slice(0,160)}`);
+  }
+  const j = await r.json();
+  return j.content?.[0]?.text || '(empty response)';
+}
+
+/* ============ MARKDOWN (light) ============ */
+function mdRender(s){
+  return s
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/^### (.+)$/gm,'<h3>$1</h3>')
+    .replace(/^## (.+)$/gm,'<h2>$1</h2>')
+    .replace(/^# (.+)$/gm,'<h1>$1</h1>')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/^- (.+)$/gm,'• $1')
+    .replace(/\n/g,'<br>');
+}
+
+/* ============ SAVE AI RESULT ============ */
+function saveAIResult(which){
+  const obj = which==='brief'?State.lastBrief:State.lastDev;
+  if(!obj){toast('Nothing to save','err');return}
+  const title = which==='brief'
+    ? `AI Briefing · ${obj.province} · ${obj.horizon} (${obj.tone})`
+    : `Devil's Advocate · ${obj.province} (${obj.tone}/${obj.intensity})`;
+  State.saved.unshift({
+    id:'s'+Date.now(),
+    type:'ai',
+    aiKind: which,
+    title,
+    category: which==='brief'?'briefing':'devils-advocate',
+    source:'Claude · '+State.model.split('-').slice(0,3).join('-'),
+    description: (which==='dev'?'DECISION: '+obj.decision+'\n\n':'') + obj.text,
+    province:obj.province,
+    tone:obj.tone,
+    horizon:obj.horizon||'',
+    intensity:obj.intensity||'',
+    decision:obj.decision||'',
+    date:obj.at,
+    savedAt:new Date().toISOString(),
+  });
+  SS('ang_saved',State.saved); renderSaved(); toast('Saved to Saved panel','ok');
+}
+
+/* ============ SAVED + FILTERS ============ */
+function filteredSaved(){
+  const q = ($('#savedSearch').value||'').toLowerCase();
+  const t = $('#savedType').value;
+  return State.saved.filter(s=>{
+    if(t && s.type!==t) return false;
+    if(q){
+      const hay = (s.title+' '+(s.description||'')+' '+(s.source||'')+' '+(s.province||'')).toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+}
+function renderSaved(){
+  $('#savedCount').textContent = State.saved.length;
+  const items = filteredSaved();
+  $('#savedList').innerHTML = items.length? items.map(s=>`
+    <div style="background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:12px;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+        <div style="flex:1">
+          <div style="font-size:13px;color:var(--txt);font-weight:500;margin-bottom:4px">${s.title}</div>
+          <div style="font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em">
+            <span class="tag">${s.type==='ai'?'🤖 AI':'📰 Article'}</span>
+            <span class="tag">${s.category||''}</span>
+            <span class="tag">${s.province||''}</span>
+            <span class="tag">${s.source||''}</span>
+          </div>
+          ${s.type==='ai'?`<details style="margin-top:8px"><summary style="cursor:pointer;color:var(--mut);font-size:11px">View output</summary><div class="ai-out" style="max-height:300px">${mdRender(s.description)}</div></details>`:`<div style="font-size:11.5px;color:var(--mut);margin-top:6px">${s.description}</div>`}
+        </div>
+        <button class="btn ghost" onclick="delSaved('${s.id}')" style="padding:4px 8px">×</button>
+      </div>
+    </div>`).join('') : `<div class="empty">No saved items match filter. Use 💾 Save on news cards or AI outputs.</div>`;
+  renderKPIs();
+}
+function delSaved(id){
+  State.saved = State.saved.filter(s=>s.id!==id);
+  SS('ang_saved',State.saved); renderSaved();
+}
+
+/* ============ CSV EXPORT ============ */
+const CSV_COLS = [
+  {k:'title',def:true},{k:'type',def:true},{k:'category',def:true},
+  {k:'source',def:true},{k:'province',def:true},{k:'date',def:true},
+  {k:'savedAt',def:true},{k:'description',def:true},
+  {k:'tone',def:false},{k:'horizon',def:false},{k:'intensity',def:false},{k:'decision',def:false},
+];
+function openCsvModal(){
+  $('#csvCols').innerHTML = CSV_COLS.map(c=>`
+    <label><input type="checkbox" value="${c.k}" ${c.def?'checked':''}/> ${c.k}</label>
+  `).join('');
+  openModal('csvModal');
+}
+function doExport(){
+  const scope = $('#csvScope').value;
+  const cols = [...$$('#csvCols input:checked')].map(i=>i.value);
+  if(!cols.length){toast('Pick at least one column','err');return}
+  let rows;
+  if(scope==='all') rows = State.saved;
+  else if(scope==='filtered') rows = filteredSaved();
+  else rows = State.saved.filter(s=>s.type===scope);
+  if(!rows.length){toast('No rows to export','err');return}
+  const esc = v => {
+    if(v==null) return '';
+    const s = String(v).replace(/"/g,'""');
+    return /[",\n;]/.test(s) ? `"${s}"` : s;
+  };
+  const csv = '\uFEFF' + cols.join(',') + '\n' +
+    rows.map(r=>cols.map(c=>esc(r[c])).join(',')).join('\n');
+  const blob = new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download=`angoalissar-saved-${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  toast(`Exported ${rows.length} rows`,'ok'); closeModal('csvModal');
+}
+
+/* ============ SETTINGS ============ */
+function saveKey(){
+  State.apiKey = $('#apiKeyIn').value.trim();
+  State.model = $('#modelSel').value;
+  SS('ang_key',State.apiKey); SS('ang_model',State.model);
+  toast(State.apiKey?'API key saved':'Key cleared','ok');
+  closeModal('setModal');
+}
+
+/* ============ NOTES ============ */
+$('#qNotes')?.addEventListener?.('input',e=>{State.notes=e.target.value;SS('ang_notes',State.notes)});
+
+/* ============ EVENTS ============ */
+function setProvince(p){
+  State.province = p;
+  SS('ang_prov',p);
+  $('#topProv').value = p;
+  renderProvinceUI();
+  renderCom(); renderFX(); renderNews();
+}
+function bind(){
+  $('#topProv').onchange = e=>setProvince(e.target.value);
+  $('#btnSettings').onclick = ()=>{$('#apiKeyIn').value=State.apiKey; $('#modelSel').value=State.model; openModal('setModal')};
+  $('#btnRefresh').onclick = ()=>{loadFX(); simCom(); toast('Refreshed','ok')};
+  $('#btnBrief').onclick = genBrief;
+  $('#btnDev').onclick = genDev;
+  $('#btnDevClr').onclick = ()=>{$('#devInput').value='';$('#devOut').innerHTML='';$('#devActs').style.display='none'};
+  $('#newsSearch').oninput = renderNews;
+  $('#newsCat').onchange = renderNews;
+  $('#btnReloadNews').onclick = ()=>{loadNews();toast('News reloaded','ok')};
+  $('#savedSearch').oninput = renderSaved;
+  $('#savedType').onchange = renderSaved;
+  $('#btnExportCsv').onclick = openCsvModal;
+  $('#btnClearSaved').onclick = ()=>{if(confirm('Clear ALL saved items?')){State.saved=[];SS('ang_saved',[]);renderSaved();toast('Cleared','ok')}};
+  $('#qNotes').value = State.notes;
+  document.querySelectorAll('.modal-bg').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('show')}));
+}
+
+/* ============ INIT ============ */
+async function init(){
+  fillProvSelects();
+  bind();
+  renderProvinceUI();
+  loadNews();
+  await loadFX();
+  simCom();
+  renderSaved();
+  setInterval(loadFX, 90_000);
+  setInterval(simCom, 7_000);
+}
+init();
+</script>
+</body>
+</html>
