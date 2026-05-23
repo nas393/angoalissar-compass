@@ -1,63 +1,38 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// Persistent storage helpers  (localStorage)
-// ─────────────────────────────────────────────────────────────────────────────
+import type { SavedBriefing, AppSettings } from "@/types";
 
-import type { SavedBriefing } from '../services/mock-data';
-
-const KEY_BRIEFINGS = 'compass_briefings';
-const KEY_SETTINGS  = 'compass_settings';
-const KEY_PROVINCE  = 'compass_province';
-const KEY_BRIEF_SCHED = 'compass_brief_schedule';
-
-export interface AppSettings {
-  devilTone: 'mild' | 'moderate' | 'brutal';
-  copilotMemory: number; // turns
-  briefingTime: string; // "07:30"
-  briefingEnabled: boolean;
-  theme: 'dark' | 'light';
-}
+const KEYS = { briefings:"compass_briefings", settings:"compass_settings", province:"compass_province" } as const;
 
 const DEFAULT_SETTINGS: AppSettings = {
-  devilTone: 'moderate',
-  copilotMemory: 10,
-  briefingTime: '07:30',
-  briefingEnabled: false,
-  theme: 'dark'
+  devilTone: "moderate", copilotMemory: 10,
+  briefingTime: "07:30", briefingEnabled: false,
 };
 
-export const loadSettings = (): AppSettings => {
-  try {
-    const raw = localStorage.getItem(KEY_SETTINGS);
-    return raw ? { ...DEFAULT_SETTINGS, ...JSON.parse(raw) } : DEFAULT_SETTINGS;
-  } catch { return DEFAULT_SETTINGS; }
-};
+function safe<T>(fn: () => T, fallback: T): T {
+  try { return fn(); } catch { return fallback; }
+}
 
-export const saveSettings = (s: AppSettings) =>
-  localStorage.setItem(KEY_SETTINGS, JSON.stringify(s));
+export const loadSettings  = (): AppSettings =>
+  safe(() => { const r = localStorage.getItem(KEYS.settings); return r ? { ...DEFAULT_SETTINGS, ...JSON.parse(r) } : DEFAULT_SETTINGS; }, DEFAULT_SETTINGS);
 
-export const loadBriefings = (): SavedBriefing[] => {
-  try {
-    const raw = localStorage.getItem(KEY_BRIEFINGS);
-    return raw ? JSON.parse(raw) : [];
-  } catch { return []; }
-};
+export const saveSettings  = (s: AppSettings) =>
+  safe(() => localStorage.setItem(KEYS.settings, JSON.stringify(s)), undefined);
 
-export const saveBriefing = (b: SavedBriefing) => {
+export const loadBriefings = (): SavedBriefing[] =>
+  safe(() => { const r = localStorage.getItem(KEYS.briefings); return r ? JSON.parse(r) : []; }, []);
+
+export const saveBriefing  = (b: SavedBriefing) => {
   const list = loadBriefings();
   list.unshift(b);
-  localStorage.setItem(KEY_BRIEFINGS, JSON.stringify(list.slice(0, 50)));
+  safe(() => localStorage.setItem(KEYS.briefings, JSON.stringify(list.slice(0,50))), undefined);
 };
 
 export const deleteBriefing = (id: string) => {
   const list = loadBriefings().filter(b => b.id !== id);
-  localStorage.setItem(KEY_BRIEFINGS, JSON.stringify(list));
+  safe(() => localStorage.setItem(KEYS.briefings, JSON.stringify(list)), undefined);
 };
 
-export const loadProvince = (): string | null => {
-  try { return localStorage.getItem(KEY_PROVINCE); } catch { return null; }
-};
+export const loadProvince = (): string | null =>
+  safe(() => localStorage.getItem(KEYS.province), null);
 
-export const saveProvince = (p: string | null) => {
-  if (p) localStorage.setItem(KEY_PROVINCE, p);
-  else localStorage.removeItem(KEY_PROVINCE);
-};
+export const saveProvince = (p: string | null) =>
+  safe(() => p ? localStorage.setItem(KEYS.province, p) : localStorage.removeItem(KEYS.province), undefined);

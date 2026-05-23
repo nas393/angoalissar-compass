@@ -1,0 +1,50 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --font-mono: "IBM Plex Mono", "Courier New", monospace;
+}
+
+body {
+  background: #010810;
+  color: #e0f7ff;
+  font-family: var(--font-mono);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+::-webkit-scrollbar { width: 3px; height: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0,220,255,0.3); border-radius: 2px; }
+
+input[type="number"]::-webkit-inner-spin-button { opacity: 0.3; }
+select option { background: #010f1e; color: #e0f7ff; }
+
+@keyframes pulse {
+  0%,100% { opacity: 0.3; transform: scale(0.8); }
+  50%      { opacity: 1;   transform: scale(1);   }
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes scanline {
+  from { transform: translateY(-100%); }
+  to   { transform: translateY(200vh); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
+.animate-pulse-dot { animation: pulse 1.2s infinite; }
+.animate-spin      { animation: spin 1s linear infinite; }
+.animate-fade-in   { animation: fadeIn 0.25s ease; }
+
+button { transition: all 0.15s; cursor: pointer; }
+button:hover { opacity: 0.88; }
+
+input:focus, select:focus {
+  outline: none;
+  border-color: rgba(0,229,255,0.6) !important;
+  box-shadow: 0 0 0 2px rgba(0,229,255,0.1);
+}
