@@ -4,934 +4,945 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Angoalissar Compass</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700;800&display=swap" rel="stylesheet"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --c:#00e5ff;--cd:#00b8cc;--b:#0055ff;--g:#00ff88;
-  --a:#ffaa00;--r:#ff3b5c;--pu:#a855f7;
-  --bg:#010810;--panel:rgba(0,14,28,0.85);
-  --br:rgba(0,220,255,0.12);--brh:rgba(0,220,255,0.5);
-  --tx:#e0f7ff;--mid:#7aacbc;--dim:#3a6070;
-  --f:"IBM Plex Mono","Courier New",monospace;
-}
-html,body{background:var(--bg);color:var(--tx);font-family:var(--f);min-height:100vh;overflow-x:hidden}
-::-webkit-scrollbar{width:3px;height:3px}
-::-webkit-scrollbar-thumb{background:rgba(0,220,255,0.3);border-radius:2px}
+body{background:#010810;color:#e0f7ff;font-family:'IBM Plex Mono','Courier New',monospace;min-height:100vh;overflow-x:hidden}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:rgba(0,220,255,.3);border-radius:2px}
 @keyframes pulse{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1)}}
 @keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-@keyframes tickerMove{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 .fade{animation:fadeIn .25s ease}
-input:focus,select:focus{outline:none;border-color:var(--c)!important;box-shadow:0 0 0 2px rgba(0,229,255,.1)}
-button{cursor:pointer;transition:all .15s;font-family:var(--f)}
+.panel{background:rgba(0,14,28,.85);border:1px solid rgba(0,220,255,.12);border-radius:12px;backdrop-filter:blur(14px)}
+button{cursor:pointer;transition:opacity .15s;font-family:'IBM Plex Mono','Courier New',monospace}
 button:hover{opacity:.85}
-input[type=number]::-webkit-inner-spin-button{opacity:.3}
-select option{background:#010f1e;color:var(--tx)}
-.panel{background:var(--panel);border:1px solid var(--br);border-radius:12px;backdrop-filter:blur(14px)}
-.neon-text{text-shadow:0 0 12px var(--c),0 0 24px rgba(0,229,255,.18)}
-.score-bar{height:4px;border-radius:2px;background:rgba(0,180,220,.1);overflow:hidden}
-.score-fill{height:100%;border-radius:2px;transition:width .6s ease}
+input:focus,select:focus{outline:none;border-color:#00e5ff!important}
+select option{background:#010f1e}
+#app{display:flex;min-height:100vh;position:relative;z-index:1}
+#bg{position:fixed;inset:0;z-index:0;pointer-events:none}
+.sidebar{width:220px;flex-shrink:0;height:100vh;position:sticky;top:0;background:rgba(0,5,14,.97);border-right:1px solid rgba(0,220,255,.12);display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;transition:width .22s ease;z-index:10}
+.sidebar.collapsed{width:58px}
+main{flex:1;min-height:100vh;overflow-x:hidden}
+.topbar{position:sticky;top:0;z-index:50;background:rgba(1,8,20,.92);backdrop-filter:blur(16px);border-bottom:1px solid rgba(0,220,255,.12);padding:10px 22px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-bottom:18px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid-2l{display:grid;grid-template-columns:2fr 1fr;gap:14px}
+.content{padding:18px 22px 56px}
+.ticker-wrap{overflow:hidden;border-top:1px solid rgba(0,220,255,.12);border-bottom:1px solid rgba(0,220,255,.12);height:26px;display:flex;align-items:center;background:rgba(0,6,16,.9)}
+.ticker-inner{display:flex;white-space:nowrap}
+.nav-btn{width:100%;display:flex;align-items:center;gap:10px;padding:10px 14px;background:transparent;border:none;border-left:2px solid transparent;cursor:pointer;transition:all .12s;position:relative;color:#3a6070;font-size:11px;font-family:'IBM Plex Mono',monospace;letter-spacing:.5px}
+.nav-btn.active{background:rgba(0,229,255,.1);border-left-color:#00e5ff;color:#00e5ff}
+.nav-btn.collapsed-btn{justify-content:center;padding:10px 0}
+.tab-btn{padding:5px 16px;border-radius:20px;font-size:10px;font-weight:700;font-family:'IBM Plex Mono',monospace;border:1px solid rgba(0,220,255,.12);background:rgba(0,180,220,.04);color:#3a6070;letter-spacing:.5px}
+.tab-btn.active{background:rgba(0,229,255,.18);border-color:#00e5ff;color:#00e5ff;box-shadow:0 0 12px rgba(0,229,255,.25)}
+.neon{text-shadow:0 0 12px rgba(0,229,255,.5),0 0 24px rgba(0,229,255,.18)}
+table{width:100%;border-collapse:collapse}
+th{padding:8px 12px;text-align:left;color:#3a6070;font-weight:700;font-size:9px;letter-spacing:1px;background:rgba(0,229,255,.06)}
+td{padding:9px 12px;font-size:12px;border-bottom:1px solid rgba(0,220,255,.06)}
+.province-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 11px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.5px}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px)}
+.modal-box{padding:26px;width:100%;max-width:520px;border:1px solid rgba(0,220,255,.5)}
+.mob-btn{display:none}
 @media(max-width:768px){
   .sidebar{display:none!important}
   .mob-btn{display:flex!important}
   .grid-3{grid-template-columns:1fr!important}
   .grid-2{grid-template-columns:1fr!important}
+  .grid-2l{grid-template-columns:1fr!important}
   .kpi-grid{grid-template-columns:repeat(2,1fr)!important}
 }
-.mob-btn{display:none}
 </style>
 </head>
 <body>
-<canvas id="bg" style="position:fixed;inset:0;z-index:0;pointer-events:none"></canvas>
-<div id="app" style="position:relative;z-index:1;display:flex;min-height:100vh"></div>
+<canvas id="bg"></canvas>
+<div id="app"></div>
+<div id="modals"></div>
 
 <script>
-// ── Bloomberg BG ─────────────────────────────────────────────────────────────
-(()=>{
-  const c=document.getElementById('bg'),ctx=c.getContext('2d');
-  let w,h,t=0,nodes=[];
-  const resize=()=>{w=c.width=innerWidth;h=c.height=innerHeight;nodes=Array.from({length:14},()=>({x:Math.random()*w,y:Math.random()*h,vx:(Math.random()-.5)*.2,vy:(Math.random()-.5)*.2,p:Math.random()*Math.PI*2}))};
+// ─── Bloomberg Background ─────────────────────────────────────────────────────
+(function(){
+  var c=document.getElementById('bg'),ctx=c.getContext('2d'),w,h,t=0,nodes=[];
+  function resize(){w=c.width=innerWidth;h=c.height=innerHeight;nodes=[];for(var i=0;i<14;i++)nodes.push({x:Math.random()*w,y:Math.random()*h,vx:(Math.random()-.5)*.2,vy:(Math.random()-.5)*.2,p:Math.random()*Math.PI*2});}
   resize();window.addEventListener('resize',resize);
-  (function draw(){
+  function draw(){
     t+=.007;ctx.clearRect(0,0,w,h);
     ctx.fillStyle='#010810';ctx.fillRect(0,0,w,h);
-    const v=ctx.createRadialGradient(w/2,h/2,0,w/2,h/2,Math.max(w,h)*.75);
-    v.addColorStop(0,'rgba(0,20,42,0)');v.addColorStop(1,'rgba(0,0,8,.75)');
-    ctx.fillStyle=v;ctx.fillRect(0,0,w,h);
-    for(let x=0;x<w;x+=46){ctx.strokeStyle=`rgba(0,220,255,${.03+Math.sin(x*.018+t*.4)*.013})`;ctx.lineWidth=.35;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke()}
-    for(let y=0;y<h;y+=46){ctx.strokeStyle=`rgba(0,200,255,${.03+Math.sin(y*.018+t*.3)*.013})`;ctx.lineWidth=.35;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}
-    const sy=((t*28)%(h+40))-20,sg=ctx.createLinearGradient(0,sy-3,0,sy+3);
-    sg.addColorStop(0,'rgba(0,220,255,0)');sg.addColorStop(.5,'rgba(0,220,255,.05)');sg.addColorStop(1,'rgba(0,220,255,0)');
+    var vg=ctx.createRadialGradient(w/2,h/2,0,w/2,h/2,Math.max(w,h)*.75);
+    vg.addColorStop(0,'rgba(0,20,42,0)');vg.addColorStop(1,'rgba(0,0,8,.75)');
+    ctx.fillStyle=vg;ctx.fillRect(0,0,w,h);
+    for(var x=0;x<w;x+=46){ctx.strokeStyle='rgba(0,220,255,'+((.03+Math.sin(x*.018+t*.4)*.013))+')';ctx.lineWidth=.35;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();}
+    for(var y=0;y<h;y+=46){ctx.strokeStyle='rgba(0,200,255,'+((.03+Math.sin(y*.018+t*.3)*.013))+')';ctx.lineWidth=.35;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
+    var sy=((t*28)%(h+40))-20;
+    var sg=ctx.createLinearGradient(0,sy-3,0,sy+3);sg.addColorStop(0,'rgba(0,220,255,0)');sg.addColorStop(.5,'rgba(0,220,255,.05)');sg.addColorStop(1,'rgba(0,220,255,0)');
     ctx.fillStyle=sg;ctx.fillRect(0,sy-3,w,6);
-    [[0,0,w,h],[w*.35,0,w,h*.65],[0,h*.3,w*.7,h]].forEach(([x1,y1,x2,y2],i)=>{
-      const bg=ctx.createLinearGradient(x1,y1,x2,y2);const a=.04+Math.sin(t+i)*.018;
-      bg.addColorStop(0,'rgba(0,180,255,0)');bg.addColorStop(.5,`rgba(0,180,255,${a})`);bg.addColorStop(1,'rgba(0,180,255,0)');
-      ctx.strokeStyle=bg;ctx.lineWidth=.9;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
-    });
-    nodes.forEach(n=>{
+    nodes.forEach(function(n){
       n.x+=n.vx;n.y+=n.vy;n.p+=.025;
       if(n.x<0||n.x>w)n.vx*=-1;if(n.y<0||n.y>h)n.vy*=-1;
-      const g=ctx.createRadialGradient(n.x,n.y,0,n.x,n.y,22+Math.sin(n.p)*6);
-      g.addColorStop(0,`rgba(0,220,255,${.25+Math.sin(n.p)*.12})`);g.addColorStop(1,'rgba(0,220,255,0)');
+      var g=ctx.createRadialGradient(n.x,n.y,0,n.x,n.y,22+Math.sin(n.p)*6);
+      g.addColorStop(0,'rgba(0,220,255,'+(.25+Math.sin(n.p)*.12)+')');g.addColorStop(1,'rgba(0,220,255,0)');
       ctx.fillStyle=g;ctx.beginPath();ctx.arc(n.x,n.y,22,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle=`rgba(200,245,255,${.6+Math.sin(n.p)*.3})`;ctx.beginPath();ctx.arc(n.x,n.y,1.5,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='rgba(200,245,255,'+(.6+Math.sin(n.p)*.3)+')';ctx.beginPath();ctx.arc(n.x,n.y,1.5,0,Math.PI*2);ctx.fill();
     });
-    nodes.forEach((n,i)=>nodes.slice(i+1).forEach(m=>{const d=Math.hypot(n.x-m.x,n.y-m.y);if(d<150){ctx.strokeStyle=`rgba(0,180,255,${(1-d/150)*.07})`;ctx.lineWidth=.5;ctx.beginPath();ctx.moveTo(n.x,n.y);ctx.lineTo(m.x,m.y);ctx.stroke()}}));
-    [[2,2],[w-62,2],[2,h-42],[w-62,h-42]].forEach(([cx,cy])=>{
-      ctx.strokeStyle=`rgba(0,220,255,${.13+Math.sin(t)*.04})`;ctx.lineWidth=1;ctx.beginPath();
-      ctx.moveTo(cx,cy+13);ctx.lineTo(cx,cy);ctx.lineTo(cx+13,cy);ctx.moveTo(cx+47,cy);ctx.lineTo(cx+60,cy);ctx.lineTo(cx+60,cy+13);
-      ctx.moveTo(cx,cy+27);ctx.lineTo(cx,cy+40);ctx.lineTo(cx+13,cy+40);ctx.moveTo(cx+47,cy+40);ctx.lineTo(cx+60,cy+40);ctx.lineTo(cx+60,cy+27);
-      ctx.stroke();
-    });
+    nodes.forEach(function(n,i){nodes.slice(i+1).forEach(function(m){var d=Math.hypot(n.x-m.x,n.y-m.y);if(d<150){ctx.strokeStyle='rgba(0,180,255,'+((1-d/150)*.07)+')';ctx.lineWidth=.5;ctx.beginPath();ctx.moveTo(n.x,n.y);ctx.lineTo(m.x,m.y);ctx.stroke();}});});
+    var corners=[[2,2],[w-62,2],[2,h-42],[w-62,h-42]];
+    corners.forEach(function(cr){var cx=cr[0],cy=cr[1];ctx.strokeStyle='rgba(0,220,255,'+(.13+Math.sin(t)*.04)+')';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(cx,cy+13);ctx.lineTo(cx,cy);ctx.lineTo(cx+13,cy);ctx.moveTo(cx+47,cy);ctx.lineTo(cx+60,cy);ctx.lineTo(cx+60,cy+13);ctx.moveTo(cx,cy+27);ctx.lineTo(cx,cy+40);ctx.lineTo(cx+13,cy+40);ctx.moveTo(cx+47,cy+40);ctx.lineTo(cx+60,cy+40);ctx.lineTo(cx+60,cy+27);ctx.stroke();});
     requestAnimationFrame(draw);
-  })();
+  }
+  draw();
 })();
 
-// ── DATA ──────────────────────────────────────────────────────────────────────
-const PROVINCES=['Luanda','Benguela','Huíla','Cabinda','Cuanza Norte','Cuanza Sul','Malanje','Lunda Norte','Namibe','Uíge','Huambo','Bié','Cunene','Moxico','Zaire','Bengo','Lunda Sul','Cuando Cubango'];
-const COMMODITIES=['Rice','Maize','Beans','Oil','Sugar','Flour'];
-const BRANDS=['Madrugada','Águia','Stallion','Patriota','Uncle Sam'];
-const REGIONS=['Luanda','Benguela','Huambo','Lobito','Lubango','Cabinda','Namibe','Uíge'];
-const CHANNELS=['Wholesale','Retail','HoReCa','Modern Trade'];
-const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1)+a);
-const rndF=(a,b,d=2)=>parseFloat((Math.random()*(b-a)+a).toFixed(d));
-const fmt=n=>(n??0).toLocaleString('en-US',{maximumFractionDigits:0});
-const fmtM=n=>n>=1e9?`${(n/1e9).toFixed(2)}B`:n>=1e6?`${(n/1e6).toFixed(1)}M`:fmt(n);
-const glow=(c,s=12)=>`0 0 ${s}px ${c}40,0 0 ${s*2}px ${c}18`;
-const SENT={positive:'#00ff88',neutral:'#ffaa00',negative:'#ff3b5c'};
-const CATC={macro:'#00e5ff',commodity:'#ffaa00',competitor:'#ff3b5c',regulatory:'#00ff88'};
-const PR={Rice:[400,800],Maize:[200,500],Beans:[600,1200],Oil:[1000,2000],Sugar:[500,1000],Flour:[300,700]};
+// ─── Data ─────────────────────────────────────────────────────────────────────
+var PROVINCES=['Luanda','Benguela','Huila','Cabinda','Cuanza Norte','Cuanza Sul','Malanje','Lunda Norte','Namibe','Uige','Huambo','Bie','Cunene','Moxico','Zaire','Bengo','Lunda Sul','Cuando Cubango'];
+var COMMODITIES=['Rice','Maize','Beans','Oil','Sugar','Flour'];
+var BRANDS=['Madrugada','Aguia','Stallion','Patriota','Uncle Sam'];
+var REGIONS=['Luanda','Benguela','Huambo','Lobito','Lubango','Cabinda','Namibe','Uige'];
+var CHANNELS=['Wholesale','Retail','HoReCa','Modern Trade'];
+var PR={Rice:[400,800],Maize:[200,500],Beans:[600,1200],Oil:[1000,2000],Sugar:[500,1000],Flour:[300,700]};
+var SENT_COLOR={positive:'#00ff88',neutral:'#ffaa00',negative:'#ff3b5c'};
+var CAT_COLOR={macro:'#00e5ff',commodity:'#ffaa00',competitor:'#ff3b5c',regulatory:'#00ff88'};
 
-const ALL_PRICES=PROVINCES.flatMap(p=>COMMODITIES.map(c=>({province:p,commodity:c,price:rnd(...PR[c]),currency:'AOA',unit:'kg'})));
+function rnd(a,b){return Math.floor(Math.random()*(b-a+1)+a);}
+function rndF(a,b){return parseFloat((Math.random()*(b-a)+a).toFixed(2));}
+function fmt(n){return(n||0).toLocaleString('en-US',{maximumFractionDigits:0});}
+function fmtM(n){return n>=1e9?(n/1e9).toFixed(2)+'B':n>=1e6?(n/1e6).toFixed(1)+'M':fmt(n);}
+function glow(c,s){s=s||12;return '0 0 '+s+'px '+c+'40,0 0 '+(s*2)+'px '+c+'18';}
+function hex2(n){return Math.round(n).toString(16).padStart(2,'0');}
 
-function genHistory(commodity,days=60){
-  const base=ALL_PRICES.find(p=>p.commodity===commodity)?.price||500;
-  let price=base*.85,arr=[];
-  for(let i=0;i<=days;i++){
-    const d=new Date();d.setDate(d.getDate()-(days-i));
+var ALL_PRICES=[];
+PROVINCES.forEach(function(p){COMMODITIES.forEach(function(c){ALL_PRICES.push({province:p,commodity:c,price:rnd(PR[c][0],PR[c][1]),currency:'AOA',unit:'kg'});});});
+
+function genHistory(commodity){
+  var base=500,arr=[];
+  for(var i=0;i<ALL_PRICES.length;i++){if(ALL_PRICES[i].commodity===commodity){base=ALL_PRICES[i].price;break;}}
+  var price=base*.85;
+  for(var d=60;d>=0;d--){
+    var dt=new Date();dt.setDate(dt.getDate()-d);
     price+=(Math.random()-.5)*base*.04;
-    arr.push({date:d.toISOString().slice(0,10),price:Math.round(price)});
+    arr.push({date:dt.toISOString().slice(0,10),price:Math.round(price)});
   }
   return arr;
 }
 function genForecast(commodity){
-  const base=ALL_PRICES.find(p=>p.commodity===commodity)?.price||500;
-  const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const cur=new Date().getMonth();
-  return months.map((m,i)=>({month:m,actual:i<=cur?Math.round(base*(1+(i-5)*.006)+(Math.random()-.5)*base*.04):null,forecast:Math.round(base*(1+(i-5)*.007)),upper:Math.round(base*(1+(i-5)*.007)*1.07),lower:Math.round(base*(1+(i-5)*.007)*.93)}));
+  var base=500;
+  for(var i=0;i<ALL_PRICES.length;i++){if(ALL_PRICES[i].commodity===commodity){base=ALL_PRICES[i].price;break;}}
+  var months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var cur=new Date().getMonth();
+  return months.map(function(m,i){return{month:m,actual:i<=cur?Math.round(base*(1+(i-5)*.006)+(Math.random()-.5)*base*.04):null,forecast:Math.round(base*(1+(i-5)*.007)),upper:Math.round(base*(1+(i-5)*.007)*1.07),lower:Math.round(base*(1+(i-5)*.007)*.93)};});
 }
 
-const DISTRIBUTORS=['Norte Distributors','Sul Commerce','Benguela Trade','Luanda Wholesale','Cabinda Supply','Huambo Distrib.','Lobito Commerce','Namibe Traders']
-.map((name,i)=>{const sales=rnd(65,115),profit=rndF(4,18),collect=rnd(70,98),coverage=rnd(55,95),growth=rndF(-5,22);const score=Math.min(Math.round((Math.min(sales,100)*.3+profit*2+collect*.25+coverage*.2+Math.max(growth+5,0)*1.5)/1.5),100);return{id:i,name,region:REGIONS[i%8],sales,profit,collect,coverage,growth,score,rank:0}})
-.sort((a,b)=>b.score-a.score).map((d,i)=>({...d,rank:i+1}));
+var DISTRIBUTORS=[];
+['Norte Distributors','Sul Commerce','Benguela Trade','Luanda Wholesale','Cabinda Supply','Huambo Distrib','Lobito Commerce','Namibe Traders'].forEach(function(name,i){
+  var sales=rnd(65,115),profit=rndF(4,18),collect=rnd(70,98),coverage=rnd(55,95),growth=rndF(-5,22);
+  var score=Math.min(Math.round((Math.min(sales,100)*.3+profit*2+collect*.25+coverage*.2+Math.max(growth+5,0)*1.5)/1.5),100);
+  DISTRIBUTORS.push({id:i,name:name,region:REGIONS[i%8],sales:sales,profit:profit,collect:collect,coverage:coverage,growth:growth,score:score,rank:0});
+});
+DISTRIBUTORS.sort(function(a,b){return b.score-a.score;});
+DISTRIBUTORS.forEach(function(d,i){d.rank=i+1;});
 
-const SKU_MARGINS=['Madrugada Flour 50kg','Águia Flour 25kg','Stallion Flour 50kg','Patriota Rice 25kg','Uncle Sam Rice 5kg','Sugar 50kg','Beans 25kg','Oil 5L']
-.flatMap(sku=>REGIONS.slice(0,4).map(region=>{const rev=rnd(80000,500000),cp=rndF(.79,.96);return{sku,brand:BRANDS[rnd(0,4)],region,channel:CHANNELS[rnd(0,3)],rev,cost:Math.round(rev*cp),margin:parseFloat(((1-cp)*100).toFixed(1))}}));
+var SKU_MARGINS=[];
+['Madrugada Flour 50kg','Aguia Flour 25kg','Stallion Flour 50kg','Patriota Rice 25kg','Uncle Sam Rice 5kg','Sugar 50kg','Beans 25kg','Oil 5L'].forEach(function(sku){
+  REGIONS.slice(0,4).forEach(function(region){
+    var rev=rnd(80000,500000),cp=rndF(.79,.96);
+    SKU_MARGINS.push({sku:sku,brand:BRANDS[rnd(0,4)],region:region,channel:CHANNELS[rnd(0,3)],rev:rev,cost:Math.round(rev*cp),margin:parseFloat(((1-cp)*100).toFixed(1))});
+  });
+});
 
-const NEWS=[
-  {id:'n1',headline:'BNA holds interest rate at 19.5% — commercial credit impact expected',source:'Jornal de Angola',date:'2026-05-22',cat:'macro',sent:'neutral',prov:'Luanda'},
-  {id:'n2',headline:'Rice prices up 8% in Luanda following shortage in informal market',source:'Expansão',date:'2026-05-21',cat:'commodity',sent:'negative',prov:'Luanda'},
-  {id:'n3',headline:'Sodosa expands distribution network to Malanje and Bié',source:'Mercado',date:'2026-05-20',cat:'competitor',sent:'negative'},
-  {id:'n4',headline:'Government announces temporary wheat flour subsidy — AOA 2/kg',source:'MINFIN',date:'2026-05-20',cat:'regulatory',sent:'positive'},
-  {id:'n5',headline:'Kwanza stabilises vs dollar: USD/AOA closed at 878.4',source:'BNA',date:'2026-05-19',cat:'macro',sent:'neutral'},
+var NEWS=[
+  {id:'n1',headline:'BNA holds interest rate at 19.5% — credit impact expected',source:'Jornal de Angola',date:'2026-05-22',cat:'macro',sent:'neutral',prov:'Luanda'},
+  {id:'n2',headline:'Rice prices up 8% in Luanda following informal market shortage',source:'Expansao',date:'2026-05-21',cat:'commodity',sent:'negative',prov:'Luanda'},
+  {id:'n3',headline:'Sodosa expands distribution to Malanje and Bie',source:'Mercado',date:'2026-05-20',cat:'competitor',sent:'negative',prov:null},
+  {id:'n4',headline:'Government announces flour subsidy — AOA 2/kg',source:'MINFIN',date:'2026-05-20',cat:'regulatory',sent:'positive',prov:null},
+  {id:'n5',headline:'Kwanza stabilises vs dollar: USD/AOA at 878.4',source:'BNA',date:'2026-05-19',cat:'macro',sent:'neutral',prov:null},
   {id:'n6',headline:'Maize harvest in Huambo exceeds forecast by 12%',source:'MINAGRIF',date:'2026-05-18',cat:'commodity',sent:'positive',prov:'Huambo'},
-  {id:'n7',headline:'Noble Group announces entry into packaged flour segment',source:'Expansão',date:'2026-05-17',cat:'competitor',sent:'negative'},
-  {id:'n8',headline:'Kero and Candando negotiate exclusive sugar supplier discount',source:'Mercado',date:'2026-05-16',cat:'competitor',sent:'negative',prov:'Luanda'},
+  {id:'n7',headline:'Noble Group enters packaged flour segment',source:'Expansao',date:'2026-05-17',cat:'competitor',sent:'negative',prov:null},
+  {id:'n8',headline:'Kero and Candando negotiate exclusive sugar discounts',source:'Mercado',date:'2026-05-16',cat:'competitor',sent:'negative',prov:'Luanda'}
 ];
-const KPI={rev:2840000000,vol:21868,margin:6.4,cust:312,dso:38,region:'Luanda',growth:4.2,marginVsTarget:-2.1};
-const FX_INIT=[{pair:'USD/AOA',rate:878.4,chg:.3},{pair:'EUR/AOA',rate:953.2,chg:-.8},{pair:'CNY/AOA',rate:121.3,chg:.1},{pair:'GBP/AOA',rate:1112.7,chg:1.2},{pair:'BRL/AOA',rate:159.6,chg:-.4}];
-const PROV_MAP=[{id:'Luanda',cx:95,cy:165,r:16},{id:'Benguela',cx:75,cy:210,r:14},{id:'Huíla',cx:110,cy:265,r:13},{id:'Cabinda',cx:80,cy:100,r:11},{id:'Huambo',cx:135,cy:235,r:13},{id:'Namibe',cx:68,cy:290,r:11},{id:'Uíge',cx:120,cy:120,r:11},{id:'Malanje',cx:170,cy:165,r:11},{id:'Bié',cx:165,cy:225,r:12},{id:'Lunda Norte',cx:245,cy:130,r:11},{id:'Lunda Sul',cx:235,cy:185,r:11},{id:'Moxico',cx:235,cy:245,r:12},{id:'Cuanza Norte',cx:125,cy:145,r:10},{id:'Cuanza Sul',cx:110,cy:195,r:11},{id:'Cuando Cubango',cx:205,cy:295,r:12},{id:'Cunene',cx:135,cy:310,r:11},{id:'Zaire',cx:95,cy:108,r:10},{id:'Bengo',cx:100,cy:148,r:10}];
 
-// ── SVG CHART HELPERS ─────────────────────────────────────────────────────────
-function svgPath(points,w,h,minV,maxV){
-  if(!points.length)return'';
-  const range=maxV-minV||1;
-  return points.map((v,i)=>`${i===0?'M':'L'}${(i/(points.length-1))*w},${h-(v-minV)/range*h}`).join(' ');
-}
-function AreaChart({data,dataKey,color,w=300,h=130}){
-  const vals=data.map(d=>d[dataKey]).filter(v=>v!=null);
-  if(!vals.length)return null;
-  const minV=Math.min(...vals)*0.98,maxV=Math.max(...vals)*1.02;
-  const pts=data.filter(d=>d[dataKey]!=null);
-  const path=svgPath(pts.map(d=>d[dataKey]),w,h,minV,maxV);
-  const id='g'+Math.random().toString(36).slice(2);
-  return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:${h}px">
-    <defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="5%" stop-color="${color}" stop-opacity=".2"/>
-      <stop offset="95%" stop-color="${color}" stop-opacity="0"/>
-    </linearGradient></defs>
-    <path d="${path} L${w},${h} L0,${h} Z" fill="url(#${id})"/>
-    <path d="${path}" fill="none" stroke="${color}" stroke-width="2" style="filter:drop-shadow(0 0 3px ${color}80)"/>
-  </svg>`;
-}
-function BarChartSVG({data,color='#00e5ff',w=300,h=140}){
-  if(!data.length)return'';
-  const maxV=Math.max(...data.map(d=>d.value))||1;
-  const bw=Math.floor(w/data.length*0.65),gap=Math.floor(w/data.length);
-  return `<svg viewBox="0 0 ${w} ${h+20}" style="width:100%;height:${h+20}px">
-    ${data.map((d,i)=>{
-      const bh=Math.round((d.value/maxV)*(h-4));
-      const x=i*gap+(gap-bw)/2,y=h-bh;
-      return `<rect x="${x}" y="${y}" width="${bw}" height="${bh}" rx="3" fill="${color}" style="filter:drop-shadow(0 0 4px ${color}60)"/>
-      <text x="${x+bw/2}" y="${h+14}" text-anchor="middle" fill="#3a6070" font-size="9" font-family="var(--f)">${d.label.slice(0,5)}</text>`;
-    }).join('')}
-  </svg>`;
-}
-function RadarSVG({data,color='#00e5ff',size=180}){
-  if(!data.length)return'';
-  const cx=size/2,cy=size/2,r=size*0.38;
-  const pts=data.map((d,i)=>{const a=(i/data.length)*Math.PI*2-Math.PI/2;const rv=(d.v/100)*r;return{x:cx+Math.cos(a)*rv,y:cy+Math.sin(a)*rv,lx:cx+Math.cos(a)*(r+18),ly:cy+Math.sin(a)*(r+18),ax:cx+Math.cos(a)*r,ay:cy+Math.sin(a)*r,label:d.s}});
-  const polyPts=pts.map(p=>`${p.x},${p.y}`).join(' ');
-  const axisPts=pts.map(p=>`${p.ax},${p.ay}`).join(' ');
-  const gridLevels=[.25,.5,.75,1].map(lvl=>pts.map((d,i)=>{const a=(i/data.length)*Math.PI*2-Math.PI/2;return`${cx+Math.cos(a)*r*lvl},${cy+Math.sin(a)*r*lvl}`}).join(' '));
-  return `<svg viewBox="0 0 ${size} ${size}" style="width:100%;height:${size}px">
-    ${gridLevels.map(g=>`<polygon points="${g}" fill="none" stroke="rgba(0,220,255,0.15)" stroke-width=".5"/>`).join('')}
-    ${pts.map(p=>`<line x1="${cx}" y1="${cy}" x2="${p.ax}" y2="${p.ay}" stroke="rgba(0,220,255,0.12)" stroke-width=".5"/>`).join('')}
-    <polygon points="${polyPts}" fill="${color}18" stroke="${color}" stroke-width="1.5" style="filter:drop-shadow(0 0 4px ${color})"/>
-    ${pts.map(p=>`<text x="${p.lx}" y="${p.ly}" text-anchor="middle" dominant-baseline="middle" fill="#3a6070" font-size="9" font-family="var(--f)">${p.label}</text>`).join('')}
-  </svg>`;
-}
-function ForecastSVG({data,w=300,h=160}){
-  if(!data.length)return'';
-  const allVals=[...data.map(d=>d.upper),...data.map(d=>d.lower)].filter(Boolean);
-  const minV=Math.min(...allVals)*0.97,maxV=Math.max(...allVals)*1.03;
-  const range=maxV-minV||1;
-  const px=(i,v)=>`${(i/(data.length-1))*w},${h-(v-minV)/range*h}`;
-  const upper=data.map((d,i)=>px(i,d.upper)).join(' L');
-  const lower=data.map((d,i)=>px(i,d.lower)).join(' L');
-  const lowerRev=[...data].reverse().map((d,i)=>px(data.length-1-i,d.lower)).join(' L');
-  const fcast=data.map((d,i)=>px(i,d.forecast));
-  const actual=data.filter(d=>d.actual).map((d,i)=>px(i,d.actual));
-  const monthW=w/(data.length-1);
-  return `<svg viewBox="0 0 ${w} ${h+16}" style="width:100%;height:${h+16}px">
-    <path d="M${upper} L${lowerRev} Z" fill="rgba(0,255,136,0.07)"/>
-    <path d="M${fcast.join(' L')}" fill="none" stroke="#00ff88" stroke-width="2" style="filter:drop-shadow(0 0 4px #00ff88)"/>
-    ${actual.length?`<path d="M${actual.join(' L')}" fill="none" stroke="#7aacbc" stroke-width="1.5" stroke-dasharray="4 2"/>`:''}
-    ${data.map((d,i)=>`<text x="${(i/(data.length-1))*w}" y="${h+12}" text-anchor="middle" fill="#3a6070" font-size="8" font-family="var(--f)">${d.month}</text>`).join('')}
-  </svg>`;
-}
+var KPI={rev:2840000000,vol:21868,margin:6.4,cust:312,dso:38,region:'Luanda',growth:4.2,mvt:-2.1};
+var FX=[{pair:'USD/AOA',rate:878.4,chg:.3},{pair:'EUR/AOA',rate:953.2,chg:-.8},{pair:'CNY/AOA',rate:121.3,chg:.1},{pair:'GBP/AOA',rate:1112.7,chg:1.2},{pair:'BRL/AOA',rate:159.6,chg:-.4}];
+var PMAP=[{id:'Luanda',cx:95,cy:165,r:16},{id:'Benguela',cx:75,cy:210,r:14},{id:'Huila',cx:110,cy:265,r:13},{id:'Cabinda',cx:80,cy:100,r:11},{id:'Huambo',cx:135,cy:235,r:13},{id:'Namibe',cx:68,cy:290,r:11},{id:'Uige',cx:120,cy:120,r:11},{id:'Malanje',cx:170,cy:165,r:11},{id:'Bie',cx:165,cy:225,r:12},{id:'Lunda Norte',cx:245,cy:130,r:11},{id:'Lunda Sul',cx:235,cy:185,r:11},{id:'Moxico',cx:235,cy:245,r:12},{id:'Cuanza Norte',cx:125,cy:145,r:10},{id:'Cuanza Sul',cx:110,cy:195,r:11},{id:'Cuando Cubango',cx:205,cy:295,r:12},{id:'Cunene',cx:135,cy:310,r:11},{id:'Zaire',cx:95,cy:108,r:10},{id:'Bengo',cx:100,cy:148,r:10}];
 
-// ── STATE ─────────────────────────────────────────────────────────────────────
-const state={
-  section:'overview',province:null,sidebarCollapsed:false,mobileOpen:false,
-  provOpen:false,csvOpen:false,pptxOpen:false,
+// ─── State ────────────────────────────────────────────────────────────────────
+var S={
+  section:'overview',province:null,collapsed:false,
+  commodity:'Rice',groupBy:'brand',newsCat:null,
+  copilotTab:'chat',copilotTone:'moderate',copilotHorizon:'30 days',
+  msgs:[],copilotLoading:false,
+  landed:{baseCostUSD:18.5,freightUSD:2.8,customsDuty:10,fxRate:870,otherCosts:500,sellingPrice:24500},
   settings:{copilotMemory:10,devilTone:'moderate',briefingEnabled:false,briefingTime:'07:30'},
-  copilotMessages:[],copilotInput:'',copilotLoading:false,copilotTab:'chat',
-  copilotTone:'moderate',copilotHorizon:'30 days',
-  commodity:'Rice',groupBy:'brand',
-  landedParams:{baseCostUSD:18.5,freightUSD:2.8,customsDuty:10,fxRate:870,otherCosts:500,sellingPrice:24500},
-  newsCat:null,hovProvince:null,
-  fxRates:[...FX_INIT],
-  historyCache:{},forecastCache:{},
   briefings:[],
+  histCache:{},fcastCache:{},
+  fxRates:JSON.parse(JSON.stringify(FX))
 };
-try{const s=localStorage.getItem('compass_settings');if(s)state.settings={...state.settings,...JSON.parse(s)}}catch{}
-try{const p=localStorage.getItem('compass_province');if(p)state.province=p}catch{}
-try{const b=localStorage.getItem('compass_briefings');if(b)state.briefings=JSON.parse(b)}catch{}
-COMMODITIES.forEach(c=>{state.historyCache[c]=genHistory(c);state.forecastCache[c]=genForecast(c)});
+try{var ss=localStorage.getItem('compass_settings');if(ss)S.settings=Object.assign(S.settings,JSON.parse(ss));}catch(e){}
+try{var sp=localStorage.getItem('compass_province');if(sp)S.province=sp;}catch(e){}
+try{var sb=localStorage.getItem('compass_briefings');if(sb)S.briefings=JSON.parse(sb);}catch(e){}
+COMMODITIES.forEach(function(c){S.histCache[c]=genHistory(c);S.fcastCache[c]=genForecast(c);});
 
-// FX live update
-setInterval(()=>{
-  state.fxRates=state.fxRates.map(r=>({...r,rate:parseFloat((r.rate+(Math.random()-.5)*.9).toFixed(1)),chg:parseFloat((r.chg+(Math.random()-.5)*.1).toFixed(2))}));
-  renderFXTicker();
+setInterval(function(){
+  S.fxRates=S.fxRates.map(function(r){return{pair:r.pair,rate:parseFloat((r.rate+(Math.random()-.5)*.9).toFixed(1)),chg:parseFloat((r.chg+(Math.random()-.5)*.1).toFixed(2))};});
+  var ti=document.querySelector('.ticker-inner');if(ti)ti.innerHTML=buildTickerHTML();
 },2800);
 
-// ── RENDER ENGINE ─────────────────────────────────────────────────────────────
-const app=document.getElementById('app');
-function set(key,val){
-  if(typeof key==='object'){Object.assign(state,key)}else{state[key]=val}
-  render();
+// ─── SVG Charts ───────────────────────────────────────────────────────────────
+function pathPoints(vals,w,h){
+  if(!vals.length)return'';
+  var mn=Math.min.apply(null,vals),mx=Math.max.apply(null,vals);
+  var range=mx-mn||1;
+  return vals.map(function(v,i){return (i===0?'M':'L')+(i/(vals.length-1)*w)+','+(h-(v-mn)/range*h);}).join(' ');
 }
 
-function el(tag,attrs={},children=''){
-  const e=document.createElement(tag);
-  Object.entries(attrs).forEach(([k,v])=>{
-    if(k==='style'&&typeof v==='object')Object.assign(e.style,v);
-    else if(k.startsWith('on'))e.addEventListener(k.slice(2).toLowerCase(),v);
-    else if(k==='className')e.className=v;
-    else if(k==='innerHTML')e.innerHTML=v;
-    else e.setAttribute(k,v);
+function areaChart(data,key,color,w,h){
+  w=w||280;h=h||120;
+  var vals=data.map(function(d){return d[key];}).filter(function(v){return v!=null;});
+  if(!vals.length)return '';
+  var p=pathPoints(vals,w,h);
+  var id='ag'+Math.random().toString(36).slice(2,8);
+  return '<svg viewBox="0 0 '+w+' '+h+'" style="width:100%;height:'+h+'px;display:block">'
+    +'<defs><linearGradient id="'+id+'" x1="0" y1="0" x2="0" y2="1">'
+    +'<stop offset="5%" stop-color="'+color+'" stop-opacity=".2"/>'
+    +'<stop offset="95%" stop-color="'+color+'" stop-opacity="0"/>'
+    +'</linearGradient></defs>'
+    +'<path d="'+p+' L'+w+','+h+' L0,'+h+' Z" fill="url(#'+id+')" />'
+    +'<path d="'+p+'" fill="none" stroke="'+color+'" stroke-width="2"/>'
+    +'</svg>';
+}
+
+function barChart(labels,vals,color,w,h){
+  w=w||280;h=h||130;color=color||'#00e5ff';
+  if(!vals.length)return '';
+  var mx=Math.max.apply(null,vals)||1;
+  var bw=Math.floor(w/vals.length*.65),gap=Math.floor(w/vals.length);
+  var bars='';
+  vals.forEach(function(v,i){
+    var bh=Math.round((v/mx)*(h-4));
+    var x=i*gap+(gap-bw)/2,y=h-bh;
+    bars+='<rect x="'+x+'" y="'+y+'" width="'+bw+'" height="'+bh+'" rx="3" fill="'+color+'"/>';
+    var lbl=labels[i]?labels[i].slice(0,5):'';
+    bars+='<text x="'+(x+bw/2)+'" y="'+(h+14)+'" text-anchor="middle" fill="#3a6070" font-size="9" font-family="monospace">'+lbl+'</text>';
   });
-  if(typeof children==='string')e.innerHTML+=children;
-  else if(Array.isArray(children))children.forEach(c=>{if(c)e.appendChild(typeof c==='string'?Object.assign(document.createElement('span'),{innerHTML:c}):c)});
-  return e;
+  return '<svg viewBox="0 0 '+w+' '+(h+18)+'" style="width:100%;height:'+(h+18)+'px;display:block">'+bars+'</svg>';
 }
 
-// ── COMPONENTS ────────────────────────────────────────────────────────────────
-function ProvincePill(province){
-  const color=province?'#ffaa00':'#00b8cc';
-  return el('span',{style:{display:'inline-flex',alignItems:'center',gap:5,padding:'3px 11px',background:`${color}12`,border:`1px solid ${color}30`,borderRadius:20,fontSize:10,fontWeight:700,color,letterSpacing:.5}},`📍 ${province?province.toUpperCase():'ALL PROVINCES'}`);
+function radarChart(items,color,size){
+  size=size||180;color=color||'#00e5ff';
+  var cx=size/2,cy=size/2,r=size*.38;
+  var n=items.length;
+  if(!n)return '';
+  function pt(i,v){var a=i/n*Math.PI*2-Math.PI/2;return{x:cx+Math.cos(a)*v,y:cy+Math.sin(a)*v};}
+  var polyPts=items.map(function(d,i){var p=pt(i,r*d.v/100);return p.x+','+p.y;}).join(' ');
+  var axes='',grid='',labels='';
+  [.25,.5,.75,1].forEach(function(lvl){
+    var gpts=items.map(function(d,i){var p=pt(i,r*lvl);return p.x+','+p.y;}).join(' ');
+    grid+='<polygon points="'+gpts+'" fill="none" stroke="rgba(0,220,255,.15)" stroke-width=".5"/>';
+  });
+  items.forEach(function(d,i){
+    var p=pt(i,r),lp=pt(i,r+18);
+    axes+='<line x1="'+cx+'" y1="'+cy+'" x2="'+p.x+'" y2="'+p.y+'" stroke="rgba(0,220,255,.12)" stroke-width=".5"/>';
+    labels+='<text x="'+lp.x+'" y="'+lp.y+'" text-anchor="middle" dominant-baseline="middle" fill="#3a6070" font-size="9" font-family="monospace">'+d.s+'</text>';
+  });
+  return '<svg viewBox="0 0 '+size+' '+size+'" style="width:100%;height:'+size+'px;display:block">'+grid+axes+'<polygon points="'+polyPts+'" fill="'+color+'18" stroke="'+color+'" stroke-width="1.5"/>'+labels+'</svg>';
 }
 
-function KPICard(label,value,sub,trend,accent,emoji){
-  const c=el('div',{style:{background:'var(--panel)',border:'1px solid var(--br)',borderRadius:12,padding:'16px 18px',position:'relative',overflow:'hidden',backdropFilter:'blur(14px)'}});
-  c.innerHTML=`
-    <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,${accent},transparent);opacity:.6"></div>
-    <div style="position:absolute;top:10px;right:12px;opacity:.14;font-size:26px">${emoji}</div>
-    <div style="font-size:9px;color:var(--dim);font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px">${label}</div>
-    <div style="font-size:22px;font-weight:800;color:var(--tx);letter-spacing:-.5px;text-shadow:${glow(accent,6)}">${value}</div>
-    <div style="margin-top:4px;display:flex;align-items:center;gap:8px;font-size:11px">
-      ${sub?`<span style="color:var(--dim)">${sub}</span>`:''}
-      ${trend!==undefined?`<span style="color:${trend>0?'#00ff88':trend<0?'#ff3b5c':'var(--dim)';font-weight:700}">${trend>0?'▲':trend<0?'▼':'—'} ${Math.abs(trend).toFixed(1)}%</span>`:''}
-    </div>`;
-  return c;
+function forecastChart(data,w,h){
+  w=w||280;h=h||150;
+  if(!data.length)return '';
+  var allV=[];data.forEach(function(d){if(d.upper)allV.push(d.upper);if(d.lower)allV.push(d.lower);});
+  var mn=Math.min.apply(null,allV)*.97,mx=Math.max.apply(null,allV)*1.03,range=mx-mn||1;
+  function px(i,v){return (i/(data.length-1)*w)+','+(h-(v-mn)/range*h);}
+  var upper=data.map(function(d,i){return px(i,d.upper);}).join(' L');
+  var lower=data.map(function(d,i){return px(i,d.lower);}).join(' L');
+  var lowerR=data.slice().reverse().map(function(d,i){return px(data.length-1-i,d.lower);}).join(' L');
+  var fcast=data.map(function(d,i){return px(i,d.forecast);}).join(' L');
+  var actualPts=data.filter(function(d){return d.actual;}).map(function(d,i){return px(i,d.actual);});
+  var monthsRow=data.map(function(d,i){return '<text x="'+(i/(data.length-1)*w)+'" y="'+(h+12)+'" text-anchor="middle" fill="#3a6070" font-size="8" font-family="monospace">'+d.month+'</text>';}).join('');
+  return '<svg viewBox="0 0 '+w+' '+(h+16)+'" style="width:100%;height:'+(h+16)+'px;display:block">'
+    +'<path d="M'+upper+' L'+lowerR+' Z" fill="rgba(0,255,136,.07)"/>'
+    +'<path d="M'+fcast+'" fill="none" stroke="#00ff88" stroke-width="2"/>'
+    +(actualPts.length?'<path d="M'+actualPts.join(' L')+'" fill="none" stroke="#7aacbc" stroke-width="1.5" stroke-dasharray="4 2"/>'  :'')
+    +monthsRow+'</svg>';
 }
 
-function SectionHeader(title,sub,province){
-  const d=el('div',{style:{marginBottom:20}});
-  d.innerHTML=`<h2 style="font-size:18px;font-weight:900;color:var(--tx);letter-spacing:1px;text-shadow:${glow('#00e5ff',8)}">${title}</h2>
-  ${sub?`<p style="font-size:11px;color:var(--dim);margin-top:3px">${sub}</p>`:''}`;
-  d.appendChild(el('div',{style:{marginTop:8}},'')).appendChild(ProvincePill(province));
+// ─── DOM helpers ──────────────────────────────────────────────────────────────
+function div(cls,html,style){
+  var d=document.createElement('div');
+  if(cls)d.className=cls;
+  if(html)d.innerHTML=html;
+  if(style)d.style.cssText=style;
+  return d;
+}
+function btn(text,cls,style,onclick){
+  var b=document.createElement('button');
+  b.textContent=text;if(cls)b.className=cls;if(style)b.style.cssText=style;
+  if(onclick)b.addEventListener('click',onclick);
+  return b;
+}
+function inp(type,val,style,oninput){
+  var i=document.createElement('input');i.type=type;i.value=val||'';
+  if(style)i.style.cssText=style;if(oninput)i.addEventListener('input',oninput);
+  return i;
+}
+
+function provincePill(prov){
+  var color=prov?'#ffaa00':'#00b8cc';
+  var d=div('province-pill');
+  d.style.cssText='background:'+color+'12;border:1px solid '+color+'30;color:'+color;
+  d.textContent='\uD83D\uDCCD '+(prov?prov.toUpperCase():'ALL PROVINCES');
   return d;
 }
 
-// ── OVERVIEW ──────────────────────────────────────────────────────────────────
+function sectionHeader(title,sub,prov){
+  var d=div('');
+  d.style.marginBottom='20px';
+  var h2=document.createElement('h2');
+  h2.textContent=title;
+  h2.style.cssText='font-size:18px;font-weight:900;color:#e0f7ff;letter-spacing:1px;text-shadow:'+glow('#00e5ff',8);
+  d.appendChild(h2);
+  if(sub){var p=document.createElement('p');p.textContent=sub;p.style.cssText='font-size:11px;color:#3a6070;margin-top:3px';d.appendChild(p);}
+  var pw=div('');pw.style.marginTop='8px';pw.appendChild(provincePill(prov));d.appendChild(pw);
+  return d;
+}
+
+function kpiCard(label,value,sub,trend,accent,emoji){
+  var c=div('panel','',
+    'padding:16px 18px;position:relative;overflow:hidden;');
+  var bar=div('');bar.style.cssText='position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,'+accent+',transparent);opacity:.6';c.appendChild(bar);
+  var eDiv=div('');eDiv.style.cssText='position:absolute;top:10px;right:12px;opacity:.15;font-size:26px';eDiv.textContent=emoji;c.appendChild(eDiv);
+  var lDiv=div('');lDiv.style.cssText='font-size:9px;color:#3a6070;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px';lDiv.textContent=label;c.appendChild(lDiv);
+  var vDiv=div('');vDiv.style.cssText='font-size:22px;font-weight:800;color:#e0f7ff;letter-spacing:-.5px;text-shadow:'+glow(accent,6);vDiv.textContent=value;c.appendChild(vDiv);
+  var bRow=div('');bRow.style.cssText='margin-top:4px;display:flex;align-items:center;gap:8px;font-size:11px';
+  if(sub){var sd=div('');sd.style.color='#3a6070';sd.textContent=sub;bRow.appendChild(sd);}
+  if(trend!==undefined){var td=div('');td.style.cssText='font-weight:700;color:'+(trend>0?'#00ff88':trend<0?'#ff3b5c':'#3a6070');td.textContent=(trend>0?'▲':trend<0?'▼':'— ')+Math.abs(trend).toFixed(1)+'%';bRow.appendChild(td);}
+  c.appendChild(bRow);
+  return c;
+}
+
+// ─── Sections ─────────────────────────────────────────────────────────────────
 function renderOverview(){
-  const prov=state.province;
-  const prices=prov?ALL_PRICES.filter(p=>p.province===prov):ALL_PRICES;
-  const avgByComm=COMMODITIES.map(c=>{const pts=prices.filter(p=>p.commodity===c);return{label:c,value:pts.length?Math.round(pts.reduce((a,b)=>a+b.price,0)/pts.length):0}});
-  const news=(prov?NEWS.filter(n=>!n.prov||n.prov===prov):NEWS).slice(0,4);
-  const d=el('div',{className:'fade'});
-  d.appendChild(SectionHeader('Overview','Executive performance summary',prov));
-  // KPI Grid
-  const kg=el('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(170px,1fr))',gap:10,marginBottom:18},className:'kpi-grid'});
-  [[KPI.rev,'Total Revenue',fmtM(KPI.rev),'AOA',KPI.growth,'#00e5ff','💰'],[KPI.vol,'Total Volume',fmt(KPI.vol),'MT',undefined,'#00ff88','📦'],[KPI.margin,'Gross Margin',`${KPI.margin}%`,'vs Target',KPI.marginVsTarget,'#ffaa00','📊'],[KPI.cust,'Active Customers',fmt(KPI.cust),'',undefined,'#a855f7','👥'],[KPI.dso,'DSO',`${KPI.dso}d`,'Collection Days',undefined,KPI.dso>45?'#ff3b5c':'#00ff88','📅'],[0,'Top Region',KPI.region,'',undefined,'#00e5ff','🏆']].forEach(([,label,value,sub,trend,accent,emoji])=>kg.appendChild(KPICard(label,value,sub,trend,accent,emoji)));
+  var prov=S.province;
+  var prices=prov?ALL_PRICES.filter(function(p){return p.province===prov;}):ALL_PRICES;
+  var avgByComm=COMMODITIES.map(function(c){var pts=prices.filter(function(p){return p.commodity===c;});return{label:c,value:pts.length?Math.round(pts.reduce(function(a,b){return a+b.price;},0)/pts.length):0};});
+  var news=(prov?NEWS.filter(function(n){return !n.prov||n.prov===prov;}):NEWS).slice(0,4);
+
+  var d=div('fade');
+  d.appendChild(sectionHeader('Overview','Executive performance summary',prov));
+
+  var kg=div('kpi-grid');
+  kg.appendChild(kpiCard('Total Revenue',fmtM(KPI.rev),'AOA',KPI.growth,'#00e5ff','💰'));
+  kg.appendChild(kpiCard('Total Volume',fmt(KPI.vol),'MT',undefined,'#00ff88','📦'));
+  kg.appendChild(kpiCard('Gross Margin',KPI.margin+'%','vs Target',KPI.mvt,'#ffaa00','📊'));
+  kg.appendChild(kpiCard('Active Customers',fmt(KPI.cust),'',undefined,'#a855f7','👥'));
+  kg.appendChild(kpiCard('DSO',KPI.dso+'d','Collection Days',undefined,KPI.dso>45?'#ff3b5c':'#00ff88','📅'));
+  kg.appendChild(kpiCard('Top Region',KPI.region,'',undefined,'#00e5ff','🏆'));
   d.appendChild(kg);
-  // 3-col grid
-  const g3=el('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14},className:'grid-3'});
-  // Bar chart panel
-  const bPanel=el('div',{className:'panel',style:{padding:14}});
-  bPanel.innerHTML=`<div style="font-size:9px;color:var(--dim);font-weight:700;letter-spacing:1.5px;margin-bottom:10px">AVG PRICES BY COMMODITY (AOA/kg)</div>
-  ${BarChartSVG({data:avgByComm,color:'#00e5ff',w:280,h:140})}`;
-  g3.appendChild(bPanel);
+
+  var g3=div('grid-3');
+
+  // Bar chart
+  var bp=div('panel','','padding:14px');
+  var bh=div('');bh.style.cssText='font-size:9px;color:#3a6070;font-weight:700;letter-spacing:1.5px;margin-bottom:10px';bh.textContent='AVG PRICES BY COMMODITY (AOA/kg)';bp.appendChild(bh);
+  bp.innerHTML+=barChart(avgByComm.map(function(d){return d.label;}),avgByComm.map(function(d){return d.value;}),'#00e5ff',280,130);
+  g3.appendChild(bp);
+
   // Angola map
-  const mapPanel=el('div',{className:'panel',style:{padding:14}});
-  mapPanel.innerHTML=`<div style="font-size:9px;color:var(--dim);font-weight:700;letter-spacing:1.5px;margin-bottom:8px">ANGOLA · MARKET COVERAGE</div>`;
-  mapPanel.appendChild(buildAngolaMap());
-  g3.appendChild(mapPanel);
+  var mp=div('panel','','padding:14px');
+  var mh=div('');mh.style.cssText='font-size:9px;color:#3a6070;font-weight:700;letter-spacing:1.5px;margin-bottom:8px';mh.textContent='ANGOLA · MARKET COVERAGE';mp.appendChild(mh);
+  mp.appendChild(buildMap(prov));
+  g3.appendChild(mp);
+
   // News
-  const nPanel=el('div',{className:'panel',style:{padding:14}});
-  nPanel.innerHTML=`<div style="font-size:9px;color:var(--dim);font-weight:700;letter-spacing:1.5px;margin-bottom:10px">LATEST INTELLIGENCE</div>
-  ${news.map(n=>`<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:10px">
-    <div style="width:5px;height:5px;border-radius:50%;background:${SENT[n.sent]};margin-top:4px;flex-shrink:0;box-shadow:0 0 6px ${SENT[n.sent]}"></div>
-    <div><div style="font-size:11px;color:var(--mid);line-height:1.4">${n.headline}</div>
-    <div style="font-size:9px;color:var(--dim);margin-top:1px">${n.source} · ${n.date}</div></div>
-  </div>`).join('')}`;
-  g3.appendChild(nPanel);
+  var np=div('panel','','padding:14px');
+  var nh=div('');nh.style.cssText='font-size:9px;color:#3a6070;font-weight:700;letter-spacing:1.5px;margin-bottom:10px';nh.textContent='LATEST INTELLIGENCE';np.appendChild(nh);
+  news.forEach(function(n){
+    var row=div('');row.style.cssText='display:flex;gap:8px;align-items:flex-start;margin-bottom:10px';
+    var dot=div('');dot.style.cssText='width:5px;height:5px;border-radius:50%;background:'+SENT_COLOR[n.sent]+';margin-top:4px;flex-shrink:0;box-shadow:0 0 6px '+SENT_COLOR[n.sent];row.appendChild(dot);
+    var txt=div('');
+    var hl=div('');hl.style.cssText='font-size:11px;color:#7aacbc;line-height:1.4';hl.textContent=n.headline;
+    var src=div('');src.style.cssText='font-size:9px;color:#3a6070;margin-top:1px';src.textContent=n.source+' · '+n.date;
+    txt.appendChild(hl);txt.appendChild(src);row.appendChild(txt);np.appendChild(row);
+  });
+  g3.appendChild(np);
   d.appendChild(g3);
   return d;
 }
 
-function buildAngolaMap(){
-  const prov=state.province;
-  const maxV=100;
-  const vals=Object.fromEntries(PROV_MAP.map(p=>[p.id,rnd(10,100)]));
-  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+function buildMap(prov){
+  var ns='http://www.w3.org/2000/svg';
+  var svg=document.createElementNS(ns,'svg');
   svg.setAttribute('viewBox','30 80 250 265');
   svg.style.cssText='width:100%;height:210px;display:block';
-  svg.innerHTML=`
-    <path d="M82,100 L95,92 L120,90 L155,88 L200,92 L230,108 L255,125 L268,150 L265,180 L258,210 L250,240 L238,265 L215,280 L195,295 L170,305 L145,308 L120,300 L100,288 L78,270 L65,248 L58,220 L55,195 L60,170 L68,148 L78,125 Z" fill="rgba(0,40,70,0.35)" stroke="rgba(0,220,255,0.2)" stroke-width="1.2"/>
-    ${[120,150,180,210,240].map(y=>`<line x1="55" y1="${y}" x2="270" y2="${y}" stroke="rgba(0,220,255,0.07)" stroke-width=".4"/>`).join('')}
-    ${[80,120,160,200,240].map(x=>`<line x1="${x}" y1="88" x2="${x}" y2="310" stroke="rgba(0,220,255,0.07)" stroke-width=".4"/>`).join('')}
-  `;
-  PROV_MAP.forEach(p=>{
-    const isSel=prov===p.id;
-    const color=isSel?'#ffaa00':'#00e5ff';
-    const r=p.r*(isSel?1.6:1);
-    const v=(vals[p.id]||50)/maxV;
-    const g=document.createElementNS('http://www.w3.org/2000/svg','g');
-    g.style.cursor='pointer';
-    g.innerHTML=`
-      <circle cx="${p.cx}" cy="${p.cy}" r="${r*2.5}" fill="${color}${Math.round(v*25).toString(16).padStart(2,'0')}"/>
-      <circle cx="${p.cx}" cy="${p.cy}" r="${r}" fill="${color}${Math.round(v*60+35).toString(16).padStart(2,'0')}" stroke="${color}" stroke-width="${isSel?1.6:.7}" opacity=".9" style="filter:drop-shadow(0 0 ${r}px ${color}90)"/>
-      ${(isSel||p.id==='Luanda')?`<text x="${p.cx+p.r+3}" y="${p.cy+4}" fill="${isSel?'#ffaa00':'#00b8cc'}" font-size="7" font-family="var(--f)" font-weight="700">${p.id.length>9?p.id.slice(0,8):p.id}</text>`:''}
-    `;
-    g.addEventListener('click',()=>{set('province',prov===p.id?null:p.id);try{prov===p.id?localStorage.removeItem('compass_province'):localStorage.setItem('compass_province',p.id)}catch{}});
-    g.addEventListener('mouseenter',()=>{g.querySelector('circle:nth-child(2)').setAttribute('r',p.r*1.4)});
-    g.addEventListener('mouseleave',()=>{g.querySelector('circle:nth-child(2)').setAttribute('r',isSel?p.r*1.6:p.r)});
+
+  function svgEl(tag,attrs){var el=document.createElementNS(ns,tag);Object.keys(attrs).forEach(function(k){el.setAttribute(k,attrs[k]);});return el;}
+
+  svg.appendChild(svgEl('path',{d:'M82,100 L95,92 L120,90 L155,88 L200,92 L230,108 L255,125 L268,150 L265,180 L258,210 L250,240 L238,265 L215,280 L195,295 L170,305 L145,308 L120,300 L100,288 L78,270 L65,248 L58,220 L55,195 L60,170 L68,148 L78,125 Z',fill:'rgba(0,40,70,.35)',stroke:'rgba(0,220,255,.2)','stroke-width':'1.2'}));
+  [120,150,180,210,240].forEach(function(y){svg.appendChild(svgEl('line',{x1:'55',y1:y,x2:'270',y2:y,stroke:'rgba(0,220,255,.07)','stroke-width':'.4'}));});
+  [80,120,160,200,240].forEach(function(x){svg.appendChild(svgEl('line',{x1:x,y1:'88',x2:x,y2:'310',stroke:'rgba(0,220,255,.07)','stroke-width':'.4'}));});
+
+  PMAP.forEach(function(p){
+    var isSel=prov===p.id,color=isSel?'#ffaa00':'#00e5ff',r=p.r*(isSel?1.6:1);
+    var g=document.createElementNS(ns,'g');g.style.cursor='pointer';
+    var glow1=document.createElementNS(ns,'circle');glow1.setAttribute('cx',p.cx);glow1.setAttribute('cy',p.cy);glow1.setAttribute('r',r*2.5);glow1.setAttribute('fill',color+'25');
+    var c=document.createElementNS(ns,'circle');c.setAttribute('cx',p.cx);c.setAttribute('cy',p.cy);c.setAttribute('r',r);c.setAttribute('fill',color+'60');c.setAttribute('stroke',color);c.setAttribute('stroke-width',isSel?'1.6':'.7');c.style.filter='drop-shadow(0 0 '+r+'px '+color+'90)';
+    g.appendChild(glow1);g.appendChild(c);
+    if(isSel||p.id==='Luanda'){var t=document.createElementNS(ns,'text');t.setAttribute('x',p.cx+p.r+3);t.setAttribute('y',p.cy+4);t.setAttribute('fill',isSel?'#ffaa00':'#00b8cc');t.setAttribute('font-size','7');t.setAttribute('font-family','monospace');t.setAttribute('font-weight','700');t.textContent=p.id.length>9?p.id.slice(0,8):p.id;g.appendChild(t);}
+    g.addEventListener('click',function(){setProv(prov===p.id?null:p.id);});
+    g.addEventListener('mouseenter',function(){c.setAttribute('r',p.r*1.4);});
+    g.addEventListener('mouseleave',function(){c.setAttribute('r',r);});
     svg.appendChild(g);
   });
   return svg;
 }
 
-// ── COMMODITIES ───────────────────────────────────────────────────────────────
 function renderCommodities(){
-  const prov=state.province,sel=state.commodity;
-  const history=state.historyCache[sel]||[];
-  const forecast=state.forecastCache[sel]||[];
-  const current=history[history.length-1]?.price||0;
-  const chg=history[0]?.price?((current-history[0].price)/history[0].price*100):0;
-  const tableRows=(prov?ALL_PRICES.filter(p=>p.province===prov):ALL_PRICES.filter(p=>p.commodity===sel)).slice(0,22);
-  const d=el('div',{className:'fade'});
-  d.appendChild(SectionHeader('Commodities','Market prices, history and 12-month forecast',prov));
-  // Tabs
-  const tabs=el('div',{style:{display:'flex',gap:6,flexWrap:'wrap',marginBottom:14}});
-  COMMODITIES.forEach(c=>{
-    const btn=el('button',{style:{padding:'5px 16px',borderRadius:20,fontSize:10,fontWeight:700,background:sel===c?'rgba(0,229,255,0.18)':'rgba(0,180,220,0.04)',border:`1px solid ${sel===c?'#00e5ff':'var(--br)'}`,color:sel===c?'#00e5ff':'var(--dim)',boxShadow:sel===c?glow('#00e5ff',6):'none'}},c);
-    btn.addEventListener('click',()=>set('commodity',c));
-    tabs.appendChild(btn);
+  var prov=S.province,sel=S.commodity;
+  var history=S.histCache[sel]||[];
+  var forecast=S.fcastCache[sel]||[];
+  var current=history.length?history[history.length-1].price:0;
+  var chg=history.length?((current-history[0].price)/history[0].price*100):0;
+  var tableRows=(prov?ALL_PRICES.filter(function(p){return p.province===prov;}):ALL_PRICES.filter(function(p){return p.commodity===sel;})).slice(0,22);
+
+  var d=div('fade');
+  d.appendChild(sectionHeader('Commodities','Market prices, history and 12-month forecast',prov));
+
+  var tabs=div('');tabs.style.cssText='display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px';
+  COMMODITIES.forEach(function(c){
+    var b=btn(c,'tab-btn'+(sel===c?' active':''));
+    b.addEventListener('click',function(){S.commodity=c;renderSection();});
+    tabs.appendChild(b);
   });
   d.appendChild(tabs);
-  // Charts grid
-  const g2=el('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:14},className:'grid-2'});
-  const ph=el('div',{className:'panel',style:{padding:14}});
-  ph.innerHTML=`<div style="font-size:9px;color:var(--dim);font-weight:700;letter-spacing:1.5px;margin-bottom:4px">${sel.toUpperCase()} · 60 DAYS</div>
-  <div style="font-size:26px;font-weight:900;color:var(--tx);letter-spacing:-1px;text-shadow:0 0 12px #00e5ff50">${fmt(current)}<span style="font-size:12px;color:var(--dim);font-weight:400;margin-left:4px">AOA/kg</span></div>
-  <div style="margin:4px 0 10px;font-size:11px;font-weight:700;color:${chg>0?'#00ff88':chg<0?'#ff3b5c':'var(--dim)'}">${chg>0?'▲':chg<0?'▼':'—'} ${Math.abs(chg).toFixed(1)}%</div>
-  ${AreaChart({data:history,dataKey:'price',color:'#00e5ff',w:280,h:120})}`;
+
+  var g2=div('grid-2');
+  var ph=div('panel','','padding:14px');
+  var pht=div('');pht.style.cssText='font-size:9px;color:#3a6070;font-weight:700;letter-spacing:1.5px;margin-bottom:4px';pht.textContent=sel.toUpperCase()+' · 60 DAYS';ph.appendChild(pht);
+  var pvDiv=div('');pvDiv.style.cssText='font-size:26px;font-weight:900;color:#e0f7ff;letter-spacing:-1px';pvDiv.innerHTML=fmt(current)+'<span style="font-size:12px;color:#3a6070;font-weight:400;margin-left:4px">AOA/kg</span>';ph.appendChild(pvDiv);
+  var chgDiv=div('');chgDiv.style.cssText='margin:4px 0 10px;font-size:11px;font-weight:700;color:'+(chg>0?'#00ff88':chg<0?'#ff3b5c':'#3a6070');chgDiv.textContent=(chg>0?'▲':chg<0?'▼':'— ')+Math.abs(chg).toFixed(1)+'%';ph.appendChild(chgDiv);
+  ph.innerHTML+=areaChart(history,'price','#00e5ff',280,120);
   g2.appendChild(ph);
-  const fh=el('div',{className:'panel',style:{padding:14}});
-  fh.innerHTML=`<div style="font-size:9px;color:var(--dim);font-weight:700;letter-spacing:1.5px;margin-bottom:10px">12-MONTH FORECAST</div>
-  ${ForecastSVG({data:forecast,w:280,h:155})}`;
+
+  var fh=div('panel','','padding:14px');
+  var fht=div('');fht.style.cssText='font-size:9px;color:#3a6070;font-weight:700;letter-spacing:1.5px;margin-bottom:10px';fht.textContent='12-MONTH FORECAST';fh.appendChild(fht);
+  fh.innerHTML+=forecastChart(forecast,280,150);
   g2.appendChild(fh);
   d.appendChild(g2);
-  // Table
-  const tpanel=el('div',{className:'panel',style:{overflow:'hidden'}});
-  tpanel.innerHTML=`<div style="padding:8px 14px;border-bottom:1px solid rgba(0,220,255,0.1);font-size:9px;color:var(--dim);font-weight:700;letter-spacing:1.5px">PRICES BY ${prov?'PROVINCE':'COMMODITY'} · ${prov||sel.toUpperCase()}</div>
-  <div style="max-height:200px;overflow-y:auto">
-  <table style="width:100%;border-collapse:collapse">
-  <thead><tr style="background:rgba(0,229,255,0.06)">${['Province','Commodity','Price (AOA)','Unit'].map(h=>`<th style="padding:7px 14px;text-align:left;color:var(--dim);font-weight:700;font-size:9px;letter-spacing:1px">${h}</th>`).join('')}</tr></thead>
-  <tbody>${tableRows.map(r=>`<tr style="border-bottom:1px solid rgba(0,220,255,0.06)"><td style="padding:7px 14px;color:var(--mid);font-size:12px">${r.province}</td><td style="padding:7px 14px;color:var(--dim);font-size:12px">${r.commodity}</td><td style="padding:7px 14px;color:var(--tx);font-weight:800;font-size:13px;text-shadow:0 0 8px #00e5ff40">${fmt(r.price)}</td><td style="padding:7px 14px;color:var(--dim);font-size:11px">AOA/kg</td></tr>`).join('')}</tbody>
-  </table></div>`;
-  d.appendChild(tpanel);
+
+  var tp=div('panel','','overflow:hidden;margin-top:0');
+  var th=div('');th.style.cssText='padding:8px 14px;border-bottom:1px solid rgba(0,220,255,.1);font-size:9px;color:#3a6070;font-weight:700;letter-spacing:1.5px';th.textContent='PRICES BY '+(prov?'PROVINCE':'COMMODITY')+' · '+(prov||sel.toUpperCase());tp.appendChild(th);
+  var tsc=div('');tsc.style.maxHeight='200px';tsc.style.overflowY='auto';
+  var tbl=document.createElement('table');
+  var thead=document.createElement('thead');thead.innerHTML='<tr><th>Province</th><th>Commodity</th><th>Price (AOA)</th><th>Unit</th></tr>';tbl.appendChild(thead);
+  var tbody=document.createElement('tbody');
+  tableRows.forEach(function(r){var tr=document.createElement('tr');tr.innerHTML='<td style="color:#7aacbc">'+r.province+'</td><td style="color:#3a6070">'+r.commodity+'</td><td style="color:#e0f7ff;font-weight:800">'+fmt(r.price)+'</td><td style="color:#3a6070">AOA/kg</td>';tbody.appendChild(tr);});
+  tbl.appendChild(tbody);tsc.appendChild(tbl);tp.appendChild(tsc);
+  d.appendChild(tp);
   return d;
 }
 
-// ── DISTRIBUTORS ──────────────────────────────────────────────────────────────
 function renderDistributors(){
-  const prov=state.province;
-  const data=(prov?DISTRIBUTORS.filter(d=>d.region===prov):DISTRIBUTORS);
-  const show=data.length?data:DISTRIBUTORS;
-  const top=show[0];
-  const radarData=top?[{s:'Sales',v:top.sales},{s:'Margin',v:top.profit*5},{s:'Collection',v:top.collect},{s:'Coverage',v:top.coverage},{s:'Growth',v:Math.max(top.growth*3+30,0)}]:[];
-  const d=el('div',{className:'fade'});
-  d.appendChild(SectionHeader('Distributor Scorecards','Automated performance rankings',prov));
-  const g2=el('div',{style:{display:'grid',gridTemplateColumns:'2fr 1fr',gap:14},className:'grid-2'});
-  const tpanel=el('div',{className:'panel',style:{overflow:'hidden'}});
-  tpanel.innerHTML=`<div style="padding:10px 14px;border-bottom:1px solid rgba(0,220,255,0.1);font-size:9px;color:var(--dim);font-weight:700;letter-spacing:1.5px">RANKINGS · PERFORMANCE</div>
-  <table style="width:100%;border-collapse:collapse">
-  <thead><tr style="background:rgba(0,229,255,0.06)">${['#','Distributor','Region','Sales%','Margin%','Score'].map(h=>`<th style="padding:9px 12px;text-align:left;color:var(--dim);font-weight:700;font-size:9px;letter-spacing:1px">${h}</th>`).join('')}</tr></thead>
-  <tbody>${show.map(d=>{
-    const sc=d.score>=70?'#00ff88':d.score>=50?'#ffaa00':'#ff3b5c';
-    const salc=d.sales>=100?'#00ff88':d.sales>=80?'#ffaa00':'#ff3b5c';
-    return `<tr style="border-bottom:1px solid rgba(0,220,255,0.06)">
-      <td style="padding:10px 12px;color:${d.rank<=3?'#ffaa00':'var(--dim)'};font-weight:900;font-size:13px;text-shadow:${d.rank<=3?glow('#ffaa00',6):'none'}">${d.rank<=3?'★':''}${d.rank}</td>
-      <td style="padding:10px 12px;color:var(--tx);font-weight:600;font-size:12px">${d.name}</td>
-      <td style="padding:10px 12px;color:var(--mid);font-size:11px">${d.region}</td>
-      <td style="padding:10px 12px;color:${salc};font-weight:800;font-size:12px;text-shadow:0 0 6px ${salc}">${d.sales}%</td>
-      <td style="padding:10px 12px;color:var(--mid);font-size:12px">${d.profit}%</td>
-      <td style="padding:10px 12px"><div style="display:flex;align-items:center;gap:6px"><div style="width:52px;height:4px;background:rgba(0,180,220,.1);border-radius:2px;overflow:hidden"><div style="width:${d.score}%;height:100%;background:linear-gradient(90deg,${sc},${d.score>=70?'#00e5ff':'#ffaa00'});box-shadow:0 0 5px ${sc}"></div></div><span style="color:var(--tx);font-weight:800;font-size:11px">${d.score}</span></div></td>
-    </tr>`;
-  }).join('')}</tbody></table>`;
-  g2.appendChild(tpanel);
-  const rpanel=el('div',{className:'panel',style:{padding:14}});
-  rpanel.innerHTML=`<div style="font-size:9px;color:var(--dim);font-weight:700;letter-spacing:1.5px;margin-bottom:2px">RADAR · TOP DISTRIBUTOR</div>
-  <div style="font-size:11px;color:var(--mid);margin-bottom:8px">${top?.name||''}</div>
-  ${RadarSVG({data:radarData,color:'#00e5ff',size:190})}`;
-  g2.appendChild(rpanel);
+  var prov=S.province;
+  var data=prov?DISTRIBUTORS.filter(function(d){return d.region===prov;}):DISTRIBUTORS;
+  var show=data.length?data:DISTRIBUTORS;
+  var top=show[0];
+  var radarData=top?[{s:'Sales',v:top.sales},{s:'Margin',v:top.profit*5},{s:'Collect',v:top.collect},{s:'Coverage',v:top.coverage},{s:'Growth',v:Math.max(top.growth*3+30,0)}]:[];
+
+  var d=div('fade');
+  d.appendChild(sectionHeader('Distributor Scorecards','Automated performance rankings',prov));
+
+  var g2=div('grid-2l');
+  var tp=div('panel','','overflow:hidden');
+  var th=div('');th.style.cssText='padding:10px 14px;border-bottom:1px solid rgba(0,220,255,.1);font-size:9px;color:#3a6070;font-weight:700;letter-spacing:1.5px';th.textContent='RANKINGS · PERFORMANCE';tp.appendChild(th);
+  var tbl=document.createElement('table');
+  var thead=document.createElement('thead');thead.innerHTML='<tr><th>#</th><th>Distributor</th><th>Region</th><th>Sales%</th><th>Score</th></tr>';tbl.appendChild(thead);
+  var tbody=document.createElement('tbody');
+  show.forEach(function(dd){
+    var sc=dd.score>=70?'#00ff88':dd.score>=50?'#ffaa00':'#ff3b5c';
+    var sc2=dd.sales>=100?'#00ff88':dd.sales>=80?'#ffaa00':'#ff3b5c';
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td style="color:'+(dd.rank<=3?'#ffaa00':'#3a6070')+';font-weight:900;font-size:13px">'+(dd.rank<=3?'★':'')+dd.rank+'</td>'
+      +'<td style="color:#e0f7ff;font-weight:600">'+dd.name+'</td>'
+      +'<td style="color:#7aacbc;font-size:11px">'+dd.region+'</td>'
+      +'<td style="color:'+sc2+';font-weight:800">'+dd.sales+'%</td>'
+      +'<td><div style="display:flex;align-items:center;gap:6px"><div style="width:50px;height:4px;background:rgba(0,180,220,.1);border-radius:2px;overflow:hidden"><div style="width:'+dd.score+'%;height:100%;background:'+sc+';box-shadow:0 0 5px '+sc+'"></div></div><span style="color:#e0f7ff;font-weight:800;font-size:11px">'+dd.score+'</span></div></td>';
+    tbody.appendChild(tr);
+  });
+  tbl.appendChild(tbody);tp.appendChild(tbl);
+  g2.appendChild(tp);
+
+  var rp=div('panel','','padding:14px');
+  var rh=div('');rh.style.cssText='font-size:9px;color:#3a6070;font-weight:700;letter-spacing:1.5px;margin-bottom:2px';rh.textContent='RADAR · TOP DISTRIBUTOR';rp.appendChild(rh);
+  var rn=div('');rn.style.cssText='font-size:11px;color:#7aacbc;margin-bottom:8px';rn.textContent=top?top.name:'';rp.appendChild(rn);
+  rp.innerHTML+=radarChart(radarData,'#00e5ff',190);
+  g2.appendChild(rp);
   d.appendChild(g2);
   return d;
 }
 
-// ── PROFITABILITY ─────────────────────────────────────────────────────────────
 function renderProfitability(){
-  const prov=state.province,gb=state.groupBy;
-  const data=prov?SKU_MARGINS.filter(d=>d.region===prov):SKU_MARGINS;
-  const map={};
-  data.forEach(row=>{const key=row[gb]||row.brand;if(!map[key])map[key]={rev:0,cost:0};map[key].rev+=row.rev;map[key].cost+=row.cost});
-  const grouped=Object.entries(map).map(([name,v])=>({name:name.length>20?name.slice(0,18)+'…':name,revenue:v.rev,gp:v.rev-v.cost,margin:parseFloat(((1-v.cost/v.rev)*100).toFixed(1))})).sort((a,b)=>b.revenue-a.revenue).slice(0,9);
-  const d=el('div',{className:'fade'});
-  d.appendChild(SectionHeader('Profitability Engine','Margin analysis across commercial dimensions',prov));
-  const tabs=el('div',{style:{display:'flex',gap:6,flexWrap:'wrap',marginBottom:14}});
-  ['brand','region','channel','sku'].forEach(k=>{
-    const btn=el('button',{style:{padding:'5px 16px',borderRadius:20,fontSize:10,fontWeight:700,background:gb===k?'rgba(0,229,255,0.18)':'rgba(0,180,220,0.04)',border:`1px solid ${gb===k?'#00e5ff':'var(--br)'}`,color:gb===k?'#00e5ff':'var(--dim)',boxShadow:gb===k?glow('#00e5ff',6):'none'}},k.toUpperCase());
-    btn.addEventListener('click',()=>set('groupBy',k));
-    tabs.appendChild(btn);
+  var prov=S.province,gb=S.groupBy;
+  var data=prov?SKU_MARGINS.filter(function(d){return d.region===prov;}):SKU_MARGINS;
+  var map={};
+  data.forEach(function(r){var k=r[gb]||r.brand;if(!map[k])map[k]={rev:0,cost:0};map[k].rev+=r.rev;map[k].cost+=r.cost;});
+  var grouped=Object.keys(map).map(function(name){var v=map[name];return{name:name.length>20?name.slice(0,18)+'…':name,rev:v.rev,gp:v.rev-v.cost,margin:parseFloat(((1-v.cost/v.rev)*100).toFixed(1))};}).sort(function(a,b){return b.rev-a.rev;}).slice(0,9);
+  var maxRev=Math.max.apply(null,grouped.map(function(r){return r.rev;}))||1;
+
+  var d=div('fade');
+  d.appendChild(sectionHeader('Profitability Engine','Margin analysis across commercial dimensions',prov));
+
+  var tabs=div('');tabs.style.cssText='display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px';
+  ['brand','region','channel','sku'].forEach(function(k){
+    var b=btn(k.toUpperCase(),'tab-btn'+(gb===k?' active':''));
+    b.addEventListener('click',function(){S.groupBy=k;renderSection();});
+    tabs.appendChild(b);
   });
   d.appendChild(tabs);
-  const g2=el('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14},className:'grid-2'});
-  // Horizontal bar chart
-  const bp=el('div',{className:'panel',style:{padding:14}});
-  const maxRev=Math.max(...grouped.map(r=>r.revenue))||1;
-  bp.innerHTML=`<div style="font-size:9px;color:var(--dim);font-weight:700;letter-spacing:1.5px;margin-bottom:12px">REVENUE vs GROSS PROFIT (AOA)</div>
-  ${grouped.map(r=>`<div style="margin-bottom:10px">
-    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--mid);margin-bottom:3px"><span>${r.name}</span><span style="color:var(--c);font-weight:700">${fmtM(r.gp)}</span></div>
-    <div style="height:8px;background:rgba(0,180,220,.08);border-radius:4px;overflow:hidden;position:relative">
-      <div style="height:100%;width:${(r.revenue/maxRev*100).toFixed(1)}%;background:rgba(0,229,255,.2);border-radius:4px;position:absolute"></div>
-      <div style="height:100%;width:${(r.gp/maxRev*100).toFixed(1)}%;background:#00e5ff;border-radius:4px;box-shadow:0 0 4px #00e5ff;position:absolute"></div>
-    </div>
-  </div>`).join('')}`;
+
+  var g2=div('grid-2');
+  var bp=div('panel','','padding:14px');
+  var bph=div('');bph.style.cssText='font-size:9px;color:#3a6070;font-weight:700;letter-spacing:1.5px;margin-bottom:12px';bph.textContent='REVENUE vs GROSS PROFIT';bp.appendChild(bph);
+  grouped.forEach(function(r){
+    var row=div('');row.style.marginBottom='10px';
+    var lrow=div('');lrow.style.cssText='display:flex;justify-content:space-between;font-size:10px;color:#7aacbc;margin-bottom:3px';
+    var ln=div('');ln.textContent=r.name;
+    var lg=div('');lg.style.cssText='color:#00e5ff;font-weight:700';lg.textContent=fmtM(r.gp);
+    lrow.appendChild(ln);lrow.appendChild(lg);row.appendChild(lrow);
+    var bar=div('');bar.style.cssText='height:8px;background:rgba(0,180,220,.08);border-radius:4px;overflow:hidden;position:relative';
+    var revBar=div('');revBar.style.cssText='height:100%;width:'+((r.rev/maxRev*100).toFixed(1))+'%;background:rgba(0,229,255,.2);border-radius:4px;position:absolute';
+    var gpBar=div('');gpBar.style.cssText='height:100%;width:'+((r.gp/maxRev*100).toFixed(1))+'%;background:#00e5ff;border-radius:4px;position:absolute;box-shadow:0 0 4px #00e5ff';
+    bar.appendChild(revBar);bar.appendChild(gpBar);row.appendChild(bar);
+    bp.appendChild(row);
+  });
   g2.appendChild(bp);
-  // Table
-  const tp=el('div',{className:'panel',style:{overflow:'hidden'}});
-  tp.innerHTML=`<div style="padding:9px 14px;border-bottom:1px solid rgba(0,220,255,0.1);font-size:9px;color:var(--dim);font-weight:700;letter-spacing:1.5px">DETAIL · BY ${gb.toUpperCase()}</div>
-  <div style="max-height:300px;overflow-y:auto"><table style="width:100%;border-collapse:collapse">
-  <thead><tr style="background:rgba(0,229,255,0.06)">${['Name','Revenue','GP','Margin'].map(h=>`<th style="padding:8px 12px;text-align:left;color:var(--dim);font-weight:700;font-size:9px;letter-spacing:1px">${h}</th>`).join('')}</tr></thead>
-  <tbody>${grouped.map(r=>{const mc=r.margin<5?'#ff3b5c':r.margin<10?'#ffaa00':'#00ff88';return`<tr style="border-bottom:1px solid rgba(0,220,255,0.06)"><td style="padding:9px 12px;color:var(--mid);font-size:11px">${r.name}</td><td style="padding:9px 12px;color:var(--tx);font-size:12px">${fmtM(r.revenue)}</td><td style="padding:9px 12px;color:#00e5ff;font-weight:700;font-size:12px">${fmtM(r.gp)}</td><td style="padding:9px 12px;color:${mc};font-weight:800;font-size:12px;text-shadow:0 0 6px ${mc}">${r.margin}%</td></tr>`}).join('')}</tbody>
-  </table></div>`;
+
+  var tp=div('panel','','overflow:hidden');
+  var tph=div('');tph.style.cssText='padding:9px 14px;border-bottom:1px solid rgba(0,220,255,.1);font-size:9px;color:#3a6070;font-weight:700;letter-spacing:1.5px';tph.textContent='DETAIL · BY '+gb.toUpperCase();tp.appendChild(tph);
+  var tsc=div('');tsc.style.maxHeight='300px';tsc.style.overflowY='auto';
+  var tbl=document.createElement('table');
+  var thead=document.createElement('thead');thead.innerHTML='<tr><th>Name</th><th>Revenue</th><th>GP</th><th>Margin</th></tr>';tbl.appendChild(thead);
+  var tbody=document.createElement('tbody');
+  grouped.forEach(function(r){
+    var mc=r.margin<5?'#ff3b5c':r.margin<10?'#ffaa00':'#00ff88';
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td style="color:#7aacbc;font-size:11px">'+r.name+'</td><td>'+fmtM(r.rev)+'</td><td style="color:#00e5ff;font-weight:700">'+fmtM(r.gp)+'</td><td style="color:'+mc+';font-weight:800">'+r.margin+'%</td>';
+    tbody.appendChild(tr);
+  });
+  tbl.appendChild(tbody);tsc.appendChild(tbl);tp.appendChild(tsc);
   g2.appendChild(tp);
   d.appendChild(g2);
   return d;
 }
 
-// ── LANDED COST ───────────────────────────────────────────────────────────────
 function renderLandedCost(){
-  const p=state.landedParams;
-  const cif=(p.baseCostUSD+p.freightUSD)*p.fxRate,duty=cif*(p.customsDuty/100),landed=Math.round(cif+duty+p.otherCosts),margin=parseFloat(((1-landed/p.sellingPrice)*100).toFixed(2));
-  const mc=margin<0?'#ff3b5c':margin<5?'#ffaa00':'#00ff88';
-  const d=el('div',{className:'fade'});
-  d.appendChild(SectionHeader('Landed Cost Simulator','Model the impact of freight, FX and customs on SKU margins',state.province));
-  const g2=el('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14},className:'grid-2'});
-  // Inputs
-  const ip=el('div',{className:'panel',style:{padding:20}});
-  ip.innerHTML='<div style="font-size:9px;color:var(--dim);font-weight:700;letter-spacing:1.5px;margin-bottom:16px">SCENARIO PARAMETERS</div>';
-  [['Base Cost','baseCostUSD',.1,'USD'],['Freight','freightUSD',.1,'USD'],['Customs Duty %','customsDuty',.5,'%'],['FX Rate','fxRate',1,'USD/AOA'],['Other Costs','otherCosts',100,'AOA'],['Selling Price','sellingPrice',100,'AOA']].forEach(([label,key,step,unit])=>{
-    const row=el('div',{style:{marginBottom:14}});
-    row.innerHTML=`<div style="display:flex;justify-content:space-between;margin-bottom:5px"><span style="font-size:9px;color:var(--dim);font-weight:700;letter-spacing:1px">${label.toUpperCase()}</span><span style="font-size:9px;color:#00e5ff">${unit}</span></div>`;
-    const inp=el('input',{type:'number',step,value:p[key],style:{width:'100%',background:'rgba(0,229,255,0.08)',border:'1px solid var(--br)',borderRadius:8,padding:'9px 12px',color:'var(--tx)',fontSize:14,fontWeight:800,fontFamily:'var(--f)'}});
-    inp.addEventListener('input',e=>{state.landedParams={...state.landedParams,[key]:parseFloat(e.target.value)||0};renderSection()});
-    row.appendChild(inp);
-    ip.appendChild(row);
+  var p=S.landed;
+  var cif=(p.baseCostUSD+p.freightUSD)*p.fxRate,duty=cif*(p.customsDuty/100),landed=Math.round(cif+duty+p.otherCosts),margin=parseFloat(((1-landed/p.sellingPrice)*100).toFixed(2));
+  var mc=margin<0?'#ff3b5c':margin<5?'#ffaa00':'#00ff88';
+
+  var d=div('fade');
+  d.appendChild(sectionHeader('Landed Cost Simulator','Model freight, FX and customs impact on margins',S.province));
+
+  var g2=div('grid-2');
+  var ip=div('panel','','padding:20px');
+  var iph=div('');iph.style.cssText='font-size:9px;color:#3a6070;font-weight:700;letter-spacing:1.5px;margin-bottom:16px';iph.textContent='SCENARIO PARAMETERS';ip.appendChild(iph);
+
+  [['Base Cost USD','baseCostUSD',.1,'USD'],['Freight USD','freightUSD',.1,'USD'],['Customs Duty %','customsDuty',.5,'%'],['FX Rate USD/AOA','fxRate',1,'USD/AOA'],['Other Costs AOA','otherCosts',100,'AOA'],['Selling Price AOA','sellingPrice',100,'AOA']].forEach(function(fi){
+    var label=fi[0],key=fi[1],step=fi[2],unit=fi[3];
+    var row=div('');row.style.marginBottom='14px';
+    var rl=div('');rl.style.cssText='display:flex;justify-content:space-between;margin-bottom:5px';
+    var ll=div('');ll.style.cssText='font-size:9px;color:#3a6070;font-weight:700;letter-spacing:1px';ll.textContent=label.toUpperCase();
+    var ul=div('');ul.style.cssText='font-size:9px;color:#00e5ff';ul.textContent=unit;
+    rl.appendChild(ll);rl.appendChild(ul);row.appendChild(rl);
+    var i=inp('number',p[key],'width:100%;background:rgba(0,229,255,.08);border:1px solid rgba(0,220,255,.12);border-radius:8px;padding:9px 12px;color:#e0f7ff;font-size:14px;font-weight:800;font-family:inherit',function(e){S.landed[key]=parseFloat(e.target.value)||0;renderSection();});
+    i.step=step;
+    row.appendChild(i);ip.appendChild(row);
   });
   g2.appendChild(ip);
-  // Result
-  const rp=el('div',{style:{display:'flex',flexDirection:'column',gap:12}});
-  const calc=el('div',{className:'panel',style:{padding:18,border:'1px solid rgba(0,229,255,0.25)'}});
-  calc.innerHTML=`<div style="font-size:9px;color:#00e5ff;font-weight:700;letter-spacing:1.5px;margin-bottom:14px">CALCULATION RESULT</div>
-  ${[['CIF Cost (AOA)',fmt(Math.round(cif))],['Customs Duty (AOA)',fmt(Math.round(duty))],['Other Costs (AOA)',fmt(p.otherCosts)],['LANDED COST (AOA)',fmt(landed),true],['Selling Price (AOA)',fmt(p.sellingPrice)]].map(([l,v,b])=>`<div style="display:flex;justify-content:space-between;padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid rgba(0,220,255,0.08)"><span style="font-size:11px;color:${b?'var(--tx)':'var(--dim)'};font-weight:${b?700:400}">${l}</span><span style="font-size:13px;color:${b?'#00e5ff':'var(--tx)'};font-weight:800;text-shadow:${b?glow('#00e5ff',6):'none'}">${v}</span></div>`).join('')}`;
+
+  var rp=div('');rp.style.cssText='display:flex;flex-direction:column;gap:12px';
+  var calc=div('panel','','padding:18px;border:1px solid rgba(0,229,255,.25)');
+  var ch=div('');ch.style.cssText='font-size:9px;color:#00e5ff;font-weight:700;letter-spacing:1.5px;margin-bottom:14px';ch.textContent='CALCULATION RESULT';calc.appendChild(ch);
+  [['CIF Cost (AOA)',fmt(Math.round(cif))],['Customs Duty (AOA)',fmt(Math.round(duty))],['Other Costs (AOA)',fmt(p.otherCosts)],['LANDED COST (AOA)',fmt(landed),true],['Selling Price (AOA)',fmt(p.sellingPrice)]].forEach(function(ri){
+    var row=div('');row.style.cssText='display:flex;justify-content:space-between;padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid rgba(0,220,255,.08)';
+    var ld=div('');ld.style.cssText='font-size:11px;color:'+(ri[2]?'#e0f7ff':'#3a6070')+';font-weight:'+(ri[2]?700:400);ld.textContent=ri[0];
+    var vd=div('');vd.style.cssText='font-size:13px;color:'+(ri[2]?'#00e5ff':'#e0f7ff')+';font-weight:800';vd.textContent=ri[1];
+    row.appendChild(ld);row.appendChild(vd);calc.appendChild(row);
+  });
   rp.appendChild(calc);
-  const mp=el('div',{className:'panel',style:{padding:20,textAlign:'center',border:`1px solid ${mc}40`,background:`${mc}08`}});
-  mp.innerHTML=`<div style="font-size:9px;color:var(--dim);font-weight:700;letter-spacing:1.5px;margin-bottom:6px">ESTIMATED GROSS MARGIN</div>
-  <div style="font-size:58px;font-weight:900;color:${mc};letter-spacing:-3px;text-shadow:${glow(mc,22)}">${margin}%</div>
-  <div style="font-size:10px;color:var(--dim);margin-top:4px">${margin<0?'⚠ LOSS — RENEGOTIATE':margin<5?'⚡ COMPRESSED MARGIN':'✓ HEALTHY MARGIN'}</div>`;
+
+  var mp=div('panel','','padding:20px;text-align:center;border:1px solid '+mc+'40;background:'+mc+'08');
+  var mh=div('');mh.style.cssText='font-size:9px;color:#3a6070;font-weight:700;letter-spacing:1.5px;margin-bottom:6px';mh.textContent='ESTIMATED GROSS MARGIN';mp.appendChild(mh);
+  var mv=div('');mv.style.cssText='font-size:58px;font-weight:900;color:'+mc+';letter-spacing:-3px;text-shadow:'+glow(mc,22);mv.textContent=margin+'%';mp.appendChild(mv);
+  var mm=div('');mm.style.cssText='font-size:10px;color:#3a6070;margin-top:4px';mm.textContent=margin<0?'⚠ LOSS — RENEGOTIATE':margin<5?'⚡ COMPRESSED MARGIN':'✓ HEALTHY MARGIN';mp.appendChild(mm);
   rp.appendChild(mp);
   g2.appendChild(rp);
   d.appendChild(g2);
   return d;
 }
 
-// ── COPILOT ───────────────────────────────────────────────────────────────────
 function renderCopilot(){
-  const prov=state.province;
-  const d=el('div',{className:'fade'});
-  d.appendChild(SectionHeader('AI Commercial Copilot','Conversational AI powered by your company data',prov));
-  const tabs=el('div',{style:{display:'flex',gap:6,flexWrap:'wrap',marginBottom:14}});
-  [['chat','💬 Copilot'],['briefing','📋 Briefing'],['devil','😈 Devil\'s Advocate']].forEach(([k,l])=>{
-    const a=state.copilotTab===k,color=k==='devil'?'#ff3b5c':'#00e5ff';
-    const btn=el('button',{style:{padding:'6px 18px',borderRadius:20,fontSize:10,fontWeight:700,background:a?`${color}18`:'rgba(0,180,220,0.04)',border:`1px solid ${a?color:'var(--br)'}`,color:a?color:'var(--dim)',boxShadow:a?glow(color,8):'none'}},l);
-    btn.addEventListener('click',()=>{state.copilotTab=k;renderSection()});
-    tabs.appendChild(btn);
+  var d=div('fade');
+  d.appendChild(sectionHeader('AI Commercial Copilot','Conversational AI powered by your company data',S.province));
+
+  var tabs=div('');tabs.style.cssText='display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px';
+  [['chat','💬 Copilot'],['briefing','📋 Briefing'],['devil','😈 Devil\'s Advocate']].forEach(function(ti){
+    var k=ti[0],l=ti[1],isD=k==='devil',color=isD?'#ff3b5c':'#00e5ff';
+    var b=btn(l,'');
+    b.style.cssText='padding:6px 18px;border-radius:20px;font-size:10px;font-weight:700;font-family:inherit;border:1px solid '+(S.copilotTab===k?color:'rgba(0,220,255,.12)')+';background:'+(S.copilotTab===k?color+'18':'rgba(0,180,220,.04)')+';color:'+(S.copilotTab===k?color:'#3a6070')+';letter-spacing:.5px';
+    b.addEventListener('click',function(){S.copilotTab=k;renderSection();});
+    tabs.appendChild(b);
   });
   d.appendChild(tabs);
-  if(state.copilotTab==='chat'){
-    const panel=el('div',{className:'panel'});
-    // Messages area
-    const msgsDiv=el('div',{style:{height:350,overflowY:'auto',padding:'14px 16px',display:'flex',flexDirection:'column',gap:10}});
-    if(!state.copilotMessages.length){
-      const intro=el('div');
-      intro.innerHTML=`<div style="text-align:center;padding:20px 0 16px;color:var(--dim);font-size:11px">COMMERCIAL COPILOT · ONLINE</div>`;
-      const qg=el('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}});
-      ['State of flour margins?','Key risks this week?','Compare Luanda vs Benguela','Top 3 Q2 priorities'].forEach(q=>{
-        const btn=el('button',{style:{padding:'10px 12px',background:'rgba(0,229,255,0.08)',border:'1px solid rgba(0,229,255,0.22)',borderRadius:8,color:'#00b8cc',fontSize:10,textAlign:'left',lineHeight:1.5,fontFamily:'var(--f)'}},q);
-        btn.addEventListener('click',()=>sendCopilot(q));
-        qg.appendChild(btn);
+
+  if(S.copilotTab==='chat'){
+    var panel=div('panel');
+    var msgsDiv=div('');msgsDiv.style.cssText='height:350px;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px';
+
+    if(!S.msgs.length){
+      var intro=div('');intro.innerHTML='<div style="text-align:center;padding:20px 0 16px;color:#3a6070;font-size:11px">COMMERCIAL COPILOT · ONLINE</div>';
+      var qg=div('');qg.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:8px';
+      ['State of flour margins?','Key risks this week?','Compare Luanda vs Benguela','Top 3 Q2 priorities'].forEach(function(q){
+        var qb=btn(q,'');qb.style.cssText='padding:10px 12px;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.22);border-radius:8px;color:#00b8cc;font-size:10px;text-align:left;line-height:1.5;font-family:inherit';
+        qb.addEventListener('click',function(){sendMsg(q);});qg.appendChild(qb);
       });
-      intro.appendChild(qg);
-      msgsDiv.appendChild(intro);
+      intro.appendChild(qg);msgsDiv.appendChild(intro);
     }
-    state.copilotMessages.forEach(m=>{
-      const mb=el('div',{style:{display:'flex',justifyContent:m.role==='user'?'flex-end':'flex-start'}});
-      mb.innerHTML=`<div style="max-width:82%;padding:10px 14px;border-radius:12px;font-size:12px;line-height:1.65;background:${m.role==='user'?'rgba(0,229,255,0.18)':'rgba(0,85,255,0.15)'};color:var(--tx);border:1px solid ${m.role==='user'?'rgba(0,229,255,0.3)':'rgba(0,85,255,0.3)'};box-shadow:${glow(m.role==='user'?'#00e5ff':'#0055ff',6)};border-bottom-${m.role==='user'?'right':'left'}-radius:4px;white-space:pre-wrap">${m.content}</div>`;
-      msgsDiv.appendChild(mb);
+
+    S.msgs.forEach(function(m){
+      var mb=div('');mb.style.cssText='display:flex;justify-content:'+(m.role==='user'?'flex-end':'flex-start');
+      var mbox=div('');
+      var isU=m.role==='user';
+      mbox.style.cssText='max-width:82%;padding:10px 14px;border-radius:12px;font-size:12px;line-height:1.65;background:'+(isU?'rgba(0,229,255,.18)':'rgba(0,85,255,.15)')+';color:#e0f7ff;border:1px solid '+(isU?'rgba(0,229,255,.3)':'rgba(0,85,255,.3)')+';white-space:pre-wrap;'+(isU?'border-bottom-right-radius:4px':'border-bottom-left-radius:4px');
+      mbox.textContent=m.content;mb.appendChild(mbox);msgsDiv.appendChild(mb);
     });
-    if(state.copilotLoading){
-      const ld=el('div',{style:{display:'flex',gap:5,padding:'10px 14px',background:'rgba(0,229,255,0.08)',borderRadius:12,width:'fit-content',border:'1px solid rgba(0,229,255,0.2)'}});
-      [0,1,2].forEach(i=>{const dot=el('div',{style:{width:6,height:6,borderRadius:'50%',background:'#00e5ff',animation:`pulse 1.2s ${i*.2}s infinite`,boxShadow:glow('#00e5ff')}});ld.appendChild(dot)});
+
+    if(S.copilotLoading){
+      var ld=div('');ld.style.cssText='display:flex;gap:5px;padding:10px 14px;background:rgba(0,229,255,.08);border-radius:12px;width:fit-content;border:1px solid rgba(0,229,255,.2)';
+      [0,1,2].forEach(function(i){var dot=div('');dot.style.cssText='width:6px;height:6px;border-radius:50%;background:#00e5ff;animation:pulse 1.2s '+i*.2+'s infinite;box-shadow:'+glow('#00e5ff');ld.appendChild(dot);});
       msgsDiv.appendChild(ld);
     }
     panel.appendChild(msgsDiv);
-    // Input
-    const inp=el('div',{style:{borderTop:'1px solid var(--br)',padding:10,display:'flex',gap:8}});
-    const input=el('input',{type:'text',placeholder:'Ask about sales, margins, risks, opportunities…',value:state.copilotInput,style:{flex:1,background:'rgba(0,229,255,0.06)',border:'1px solid var(--br)',borderRadius:8,padding:'9px 12px',color:'var(--tx)',fontSize:12,fontFamily:'var(--f)'}});
-    input.addEventListener('input',e=>state.copilotInput=e.target.value);
-    input.addEventListener('keydown',e=>e.key==='Enter'&&sendCopilot(state.copilotInput));
-    const sendBtn=el('button',{style:{padding:'9px 20px',background:'rgba(0,229,255,0.18)',border:'1px solid #00e5ff',borderRadius:8,color:'#00e5ff',fontSize:11,fontWeight:800,boxShadow:glow('#00e5ff',8),opacity:state.copilotLoading?.5:1}},'SEND');
-    sendBtn.addEventListener('click',()=>sendCopilot(state.copilotInput));
-    inp.appendChild(input);inp.appendChild(sendBtn);
-    panel.appendChild(inp);
+    setTimeout(function(){msgsDiv.scrollTop=msgsDiv.scrollHeight;},50);
+
+    var inpRow=div('');inpRow.style.cssText='border-top:1px solid rgba(0,220,255,.12);padding:10px;display:flex;gap:8px';
+    var textInp=inp('text','','flex:1;background:rgba(0,229,255,.06);border:1px solid rgba(0,220,255,.12);border-radius:8px;padding:9px 12px;color:#e0f7ff;font-size:12px;font-family:inherit',null);
+    textInp.placeholder='Ask about sales, margins, risks…';
+    textInp.addEventListener('keydown',function(e){if(e.key==='Enter')sendMsg(textInp.value);});
+    var sb=btn('SEND','');sb.style.cssText='padding:9px 20px;background:rgba(0,229,255,.18);border:1px solid #00e5ff;border-radius:8px;color:#00e5ff;font-size:11px;font-weight:800;box-shadow:'+glow('#00e5ff',8);
+    sb.addEventListener('click',function(){sendMsg(textInp.value);});
+    inpRow.appendChild(textInp);inpRow.appendChild(sb);panel.appendChild(inpRow);
     d.appendChild(panel);
   }
-  if(state.copilotTab==='briefing'){
-    const panel=el('div',{className:'panel',style:{padding:22}});
-    panel.innerHTML=`<p style="font-size:12px;color:var(--mid);margin-bottom:18px;line-height:1.6">Generates a daily executive summary with KPIs, risks, opportunities and priority actions.</p>
-    <div style="font-size:9px;color:var(--dim);font-weight:700;letter-spacing:1.5px;margin-bottom:8px">HORIZON</div>`;
-    const hg=el('div',{style:{display:'flex',gap:8,marginBottom:18}});
-    ['7 days','30 days','Quarter','Annual'].forEach(h=>{
-      const btn=el('button',{style:{padding:'6px 14px',borderRadius:8,fontSize:10,fontWeight:700,background:state.copilotHorizon===h?'rgba(0,229,255,0.18)':'rgba(0,180,220,0.04)',border:`1px solid ${state.copilotHorizon===h?'#00e5ff':'var(--br)'}`,color:state.copilotHorizon===h?'#00e5ff':'var(--dim)',boxShadow:state.copilotHorizon===h?glow('#00e5ff',6):'none'}},h);
-      btn.addEventListener('click',()=>{state.copilotHorizon=h;renderSection()});
-      hg.appendChild(btn);
+
+  if(S.copilotTab==='briefing'){
+    var bp=div('panel','','padding:22px');
+    var bpt=div('');bpt.style.cssText='font-size:12px;color:#7aacbc;margin-bottom:18px;line-height:1.6';bpt.textContent='Generates a daily executive summary with KPIs, risks, opportunities and priority actions.';bp.appendChild(bpt);
+    var hh=div('');hh.style.cssText='font-size:9px;color:#3a6070;font-weight:700;letter-spacing:1.5px;margin-bottom:8px';hh.textContent='HORIZON';bp.appendChild(hh);
+    var hg=div('');hg.style.cssText='display:flex;gap:8px;margin-bottom:18px';
+    ['7 days','30 days','Quarter','Annual'].forEach(function(h){
+      var hb=btn(h,'tab-btn'+(S.copilotHorizon===h?' active':''));
+      hb.addEventListener('click',function(){S.copilotHorizon=h;renderSection();});hg.appendChild(hb);
     });
-    panel.appendChild(hg);
-    const gb=el('button',{style:{padding:'12px 28px',background:'rgba(0,229,255,0.15)',border:'1px solid #00e5ff',borderRadius:10,color:'#00e5ff',fontSize:12,fontWeight:800,opacity:state.copilotLoading?.5:1,boxShadow:glow('#00e5ff',10),display:'flex',alignItems:'center',gap:10}},'⚡ GENERATE EXECUTIVE BRIEFING');
-    gb.addEventListener('click',()=>genBriefing('briefing'));
-    panel.appendChild(gb);
-    d.appendChild(panel);
+    bp.appendChild(hg);
+    var gb=btn('⚡ GENERATE EXECUTIVE BRIEFING','');gb.style.cssText='padding:12px 28px;background:rgba(0,229,255,.15);border:1px solid #00e5ff;border-radius:10px;color:#00e5ff;font-size:12px;font-weight:800;opacity:'+(S.copilotLoading?.5:1)+';box-shadow:'+glow('#00e5ff',10);
+    gb.addEventListener('click',function(){genBriefing('briefing');});bp.appendChild(gb);
+    d.appendChild(bp);
   }
-  if(state.copilotTab==='devil'){
-    const panel=el('div',{className:'panel',style:{padding:22,border:'1px solid rgba(255,59,92,0.25)'}});
-    panel.innerHTML=`<p style="font-size:12px;color:var(--mid);margin-bottom:18px;line-height:1.6">Independent critical perspective — challenges decisions and identifies ignored risks.</p>
-    <div style="font-size:9px;color:var(--dim);font-weight:700;letter-spacing:1.5px;margin-bottom:8px">INTENSITY</div>`;
-    const tg=el('div',{style:{display:'flex',gap:8,marginBottom:18}});
-    [['mild','Mild'],['moderate','Moderate'],['brutal','☠ Brutal']].forEach(([v,l])=>{
-      const btn=el('button',{style:{padding:'6px 14px',borderRadius:8,fontSize:10,fontWeight:700,background:state.copilotTone===v?'rgba(255,59,92,0.18)':'rgba(220,0,60,0.04)',border:`1px solid ${state.copilotTone===v?'#ff3b5c':'var(--br)'}`,color:state.copilotTone===v?'#ff3b5c':'var(--dim)',boxShadow:state.copilotTone===v?glow('#ff3b5c',6):'none'}},l);
-      btn.addEventListener('click',()=>{state.copilotTone=v;renderSection()});
-      tg.appendChild(btn);
+
+  if(S.copilotTab==='devil'){
+    var dvp=div('panel','','padding:22px;border:1px solid rgba(255,59,92,.25)');
+    var dvt=div('');dvt.style.cssText='font-size:12px;color:#7aacbc;margin-bottom:18px;line-height:1.6';dvt.textContent='Independent critical perspective — challenges decisions and identifies ignored risks.';dvp.appendChild(dvt);
+    var ih=div('');ih.style.cssText='font-size:9px;color:#3a6070;font-weight:700;letter-spacing:1.5px;margin-bottom:8px';ih.textContent='INTENSITY';dvp.appendChild(ih);
+    var tg=div('');tg.style.cssText='display:flex;gap:8px;margin-bottom:18px';
+    [['mild','Mild'],['moderate','Moderate'],['brutal','☠ Brutal']].forEach(function(ti){
+      var tv=ti[0],tl=ti[1];var tb=btn(tl,'');tb.style.cssText='padding:6px 14px;border-radius:8px;font-size:10px;font-weight:700;font-family:inherit;background:'+(S.copilotTone===tv?'rgba(255,59,92,.18)':'rgba(220,0,60,.04)')+';border:1px solid '+(S.copilotTone===tv?'#ff3b5c':'rgba(0,220,255,.12)')+';color:'+(S.copilotTone===tv?'#ff3b5c':'#3a6070');
+      tb.addEventListener('click',function(){S.copilotTone=tv;renderSection();});tg.appendChild(tb);
     });
-    panel.appendChild(tg);
-    const db=el('button',{style:{padding:'12px 28px',background:'rgba(255,59,92,0.15)',border:'1px solid #ff3b5c',borderRadius:10,color:'#ff3b5c',fontSize:12,fontWeight:800,opacity:state.copilotLoading?.5:1,boxShadow:glow('#ff3b5c',10),display:'flex',alignItems:'center',gap:10}},'🛡 ACTIVATE DEVIL\'S ADVOCATE');
-    db.addEventListener('click',()=>genBriefing('devil'));
-    panel.appendChild(db);
-    d.appendChild(panel);
+    dvp.appendChild(tg);
+    var db=btn('🛡 ACTIVATE DEVIL\'S ADVOCATE','');db.style.cssText='padding:12px 28px;background:rgba(255,59,92,.15);border:1px solid #ff3b5c;border-radius:10px;color:#ff3b5c;font-size:12px;font-weight:800;opacity:'+(S.copilotLoading?.5:1)+';box-shadow:'+glow('#ff3b5c',10);
+    db.addEventListener('click',function(){genBriefing('devil');});dvp.appendChild(db);
+    d.appendChild(dvp);
   }
   return d;
 }
 
-async function sendCopilot(msg){
-  if(!msg.trim()||state.copilotLoading)return;
-  state.copilotMessages=[...state.copilotMessages,{role:'user',content:msg}];
-  state.copilotInput='';state.copilotLoading=true;renderSection();
+async function sendMsg(msg){
+  if(!msg||!msg.trim()||S.copilotLoading)return;
+  S.msgs=S.msgs.concat([{role:'user',content:msg}]);
+  S.copilotLoading=true;renderSection();
   try{
-    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:`You are the Commercial Copilot for Angoalissar Lda (Webcor Group), FMCG Angola. KPIs: Revenue ${fmtM(KPI.rev)} AOA, Volume ${fmt(KPI.vol)} MT, Margin ${KPI.margin}%. Scope: ${state.province||'All Angola'}. Competitors: Noble Group, Sodosa, Alimenta Angola, Kero, Candando. Be direct, analytical and action-oriented. Respond in English.`,messages:state.copilotMessages.slice(-20).map(m=>({role:m.role,content:m.content}))})});
-    const data=await r.json();
-    state.copilotMessages=[...state.copilotMessages,{role:'assistant',content:data.content?.find(c=>c.type==='text')?.text||'No response.'}];
-  }catch{state.copilotMessages=[...state.copilotMessages,{role:'assistant',content:'⚠ Anthropic API not configured. Add your API key to enable the Copilot.'}];}
-  state.copilotLoading=false;renderSection();
+    var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:'You are the Commercial Copilot for Angoalissar Lda (Webcor Group), FMCG Angola. Revenue '+fmtM(KPI.rev)+' AOA, Volume '+fmt(KPI.vol)+' MT, Margin '+KPI.margin+'%. Scope: '+(S.province||'All Angola')+'. Competitors: Noble Group, Sodosa, Alimenta Angola. Be direct and action-oriented. Respond in English.',messages:S.msgs.slice(-20).map(function(m){return{role:m.role,content:m.content};})})});
+    var data=await r.json();
+    var reply=(data.content&&data.content.find(function(c){return c.type==='text';}))?data.content.find(function(c){return c.type==='text';}).text:'No response.';
+    S.msgs=S.msgs.concat([{role:'assistant',content:reply}]);
+  }catch(e){S.msgs=S.msgs.concat([{role:'assistant',content:'⚠ Anthropic API not configured. Add your API key to enable the Copilot.'}]);}
+  S.copilotLoading=false;renderSection();
 }
 
 async function genBriefing(type){
-  const toneMap={mild:'gentle',moderate:'direct and critical',brutal:'brutally honest'};
-  const prompt=type==='briefing'?`Generate a daily executive briefing for Angoalissar. Scope: ${state.province||'All Angola'}. Horizon: ${state.copilotHorizon}. Include KPIs, risks, opportunities, 3 priority actions.`:`Devil's Advocate (${toneMap[state.copilotTone]}): Challenge Angoalissar's performance. Scope: ${state.province||'All Angola'}. Identify blind spots and ignored risks.`;
-  state.copilotTab='chat';
-  await sendCopilot(prompt);
-  // save briefing
-  const last=state.copilotMessages[state.copilotMessages.length-1];
-  if(last?.role==='assistant'){
-    const b={id:Date.now().toString(),title:type==='briefing'?`Executive Briefing — ${new Date().toLocaleDateString('en-GB')}`:`Devil's Advocate — ${new Date().toLocaleDateString('en-GB')}`,content:last.content,type,province:state.province,tone:state.copilotTone,horizon:state.copilotHorizon,generatedAt:new Date().toISOString()};
-    state.briefings=[b,...state.briefings];
-    try{localStorage.setItem('compass_briefings',JSON.stringify(state.briefings.slice(0,50)))}catch{}
+  var toneMap={mild:'gentle',moderate:'direct and critical',brutal:'brutally honest'};
+  var prompt=type==='briefing'?'Generate a daily executive briefing for Angoalissar. Scope: '+(S.province||'All Angola')+'. Horizon: '+S.copilotHorizon+'. Include KPIs, risks, opportunities, 3 priority actions.':'Devil\'s Advocate ('+toneMap[S.copilotTone]+'): Challenge Angoalissar\'s performance. Scope: '+(S.province||'All Angola')+'. Identify blind spots and ignored risks.';
+  S.copilotTab='chat';await sendMsg(prompt);
+  var last=S.msgs[S.msgs.length-1];
+  if(last&&last.role==='assistant'){
+    var b={id:Date.now().toString(),title:type==='briefing'?'Executive Briefing — '+new Date().toLocaleDateString('en-GB'):"Devil's Advocate — "+new Date().toLocaleDateString('en-GB'),content:last.content,type:type,province:S.province,tone:S.copilotTone,horizon:S.copilotHorizon,generatedAt:new Date().toISOString()};
+    S.briefings=[b].concat(S.briefings);
+    try{localStorage.setItem('compass_briefings',JSON.stringify(S.briefings.slice(0,50)));}catch(e){}
   }
 }
 
-// ── NEWS ──────────────────────────────────────────────────────────────────────
 function renderNews(){
-  const prov=state.province,cat=state.newsCat;
-  const news=NEWS.filter(n=>(!prov||!n.prov||n.prov===prov)&&(!cat||n.cat===cat));
-  const d=el('div',{className:'fade'});
-  d.appendChild(SectionHeader('Market Intelligence','Real-time news and competitive signals',prov));
-  const ftabs=el('div',{style:{display:'flex',gap:6,flexWrap:'wrap',marginBottom:14}});
-  [{k:null,l:'ALL'},{k:'macro',l:'MACRO'},{k:'commodity',l:'COMMODITY'},{k:'competitor',l:'COMPETITORS'},{k:'regulatory',l:'REGULATORY'}].forEach(({k,l})=>{
-    const a=cat===k,color=k?CATC[k]:'#00e5ff';
-    const btn=el('button',{style:{padding:'5px 14px',borderRadius:20,fontSize:10,fontWeight:700,background:a?`${color}18`:'rgba(0,180,220,0.04)',border:`1px solid ${a?color:'var(--br)'}`,color:a?color:'var(--dim)',boxShadow:a?glow(color,6):'none'}},l);
-    btn.addEventListener('click',()=>{state.newsCat=k;renderSection()});
-    ftabs.appendChild(btn);
+  var prov=S.province,cat=S.newsCat;
+  var news=NEWS.filter(function(n){return (!prov||!n.prov||n.prov===prov)&&(!cat||n.cat===cat);});
+  var d=div('fade');
+  d.appendChild(sectionHeader('Market Intelligence','Real-time news and competitive signals',prov));
+  var ftabs=div('');ftabs.style.cssText='display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px';
+  [{k:null,l:'ALL'},{k:'macro',l:'MACRO'},{k:'commodity',l:'COMMODITY'},{k:'competitor',l:'COMPETITORS'},{k:'regulatory',l:'REGULATORY'}].forEach(function(ci){
+    var isa=cat===ci.k,color=ci.k?CAT_COLOR[ci.k]:'#00e5ff';
+    var b=btn(ci.l,'');b.style.cssText='padding:5px 14px;border-radius:20px;font-size:10px;font-weight:700;font-family:inherit;background:'+(isa?color+'18':'rgba(0,180,220,.04)')+';border:1px solid '+(isa?color:'rgba(0,220,255,.12)')+';color:'+(isa?color:'#3a6070');
+    b.addEventListener('click',function(){S.newsCat=ci.k;renderSection();});ftabs.appendChild(b);
   });
   d.appendChild(ftabs);
-  const list=el('div',{style:{display:'flex',flexDirection:'column',gap:8}});
-  news.forEach(n=>{
-    const item=el('div',{style:{background:'var(--panel)',border:'1px solid var(--br)',borderLeft:`3px solid ${SENT[n.sent]}`,borderRadius:10,padding:'12px 16px',backdropFilter:'blur(14px)'}});
-    item.innerHTML=`<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
-      <div style="flex:1"><div style="font-size:13px;color:var(--tx);line-height:1.55;margin-bottom:5px">${n.headline}</div>
-      <div style="font-size:9px;color:var(--dim)">${n.source} · ${n.date}${n.prov?` · 📍 ${n.prov}`:''}</div></div>
-      <div style="display:flex;gap:4px;flex-shrink:0">
-        <span style="padding:2px 7px;border-radius:6px;font-size:9px;font-weight:800;letter-spacing:1px;background:${CATC[n.cat]}15;color:${CATC[n.cat]};border:1px solid ${CATC[n.cat]}35;text-transform:uppercase">${n.cat}</span>
-        <span style="padding:2px 7px;border-radius:6px;font-size:9px;font-weight:800;letter-spacing:1px;background:${SENT[n.sent]}15;color:${SENT[n.sent]};border:1px solid ${SENT[n.sent]}35;text-transform:uppercase">${n.sent}</span>
-      </div>
-    </div>`;
-    list.appendChild(item);
-  });
-  d.appendChild(list);
-  return d;
-}
-
-// ── SETTINGS ──────────────────────────────────────────────────────────────────
-function renderSettings(){
-  const s=state.settings;
-  const d=el('div',{className:'fade'});
-  d.appendChild(SectionHeader('Settings','Configure Copilot, briefing schedule and preferences',null));
-  const g2=el('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14},className:'grid-2'});
-  // Copilot panel
-  const cp=el('div',{className:'panel',style:{padding:20}});
-  cp.innerHTML=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:16px"><span style="font-size:16px">🧠</span><span style="font-size:12px;font-weight:800;color:var(--tx);letter-spacing:1px">COPILOT AI</span></div>
-  <div style="margin-bottom:16px"><div style="font-size:9px;color:var(--dim);font-weight:700;letter-spacing:1.5px;margin-bottom:7px">MEMORY LENGTH (TURNS)</div>
-  <div style="display:flex;align-items:center;gap:10px"><input type="range" id="memSlider" min="5" max="30" step="5" value="${s.copilotMemory}" style="flex:1;accent-color:#00e5ff"/><span id="memVal" style="color:var(--tx);font-weight:800;min-width:24px">${s.copilotMemory}</span></div></div>
-  <div><div style="font-size:9px;color:var(--dim);font-weight:700;letter-spacing:1.5px;margin-bottom:7px">DEVIL'S ADVOCATE INTENSITY</div>
-  <select id="toneSelect" style="background:rgba(0,229,255,0.08);border:1px solid var(--br);border-radius:8px;padding:8px 10px;color:var(--tx);font-size:12px;width:100%;font-family:var(--f)"><option value="mild"${s.devilTone==='mild'?' selected':''}>Mild</option><option value="moderate"${s.devilTone==='moderate'?' selected':''}>Moderate</option><option value="brutal"${s.devilTone==='brutal'?' selected':''}>Brutal</option></select></div>`;
-  g2.appendChild(cp);
-  // Briefing panel
-  const bp=el('div',{className:'panel',style:{padding:20}});
-  const tog=`<div id="briefingToggle" style="width:44px;height:24px;border-radius:12px;cursor:pointer;background:${s.briefingEnabled?'#00e5ff':'rgba(0,229,255,0.15)'};border:1px solid ${s.briefingEnabled?'#00e5ff':'var(--br)'};position:relative;transition:all .2s;box-shadow:${s.briefingEnabled?glow('#00e5ff',8):'none'}"><div style="position:absolute;top:3px;left:${s.briefingEnabled?22:3}px;width:16px;height:16px;border-radius:50%;background:${s.briefingEnabled?'#001820':'rgba(0,180,220,0.3)'};transition:left .2s"></div></div>`;
-  bp.innerHTML=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:16px"><span style="font-size:16px">🔔</span><span style="font-size:12px;font-weight:800;color:var(--tx);letter-spacing:1px">DAILY BRIEFING</span></div>
-  <div style="margin-bottom:16px"><div style="font-size:9px;color:var(--dim);font-weight:700;letter-spacing:1.5px;margin-bottom:7px">ENABLE DAILY BRIEFING</div>${tog}</div>
-  <div><div style="font-size:9px;color:var(--dim);font-weight:700;letter-spacing:1.5px;margin-bottom:7px">BRIEFING TIME</div>
-  <input id="timeInput" type="time" value="${s.briefingTime}" ${!s.briefingEnabled?'disabled':''} style="background:rgba(0,229,255,0.06);border:1px solid var(--br);border-radius:8px;padding:8px 10px;color:${s.briefingEnabled?'var(--tx)':'var(--dim)'};font-size:12px;width:100%;font-family:var(--f);opacity:${s.briefingEnabled?1:.4}"/></div>
-  ${s.briefingEnabled?`<div style="margin-top:12px;padding:8px 12px;background:rgba(255,170,0,0.1);border:1px solid rgba(255,170,0,0.3);border-radius:8px;font-size:10px;color:#ffaa00;line-height:1.5">⏰ Daily briefing active at ${s.briefingTime}</div>`:''}`;
-  g2.appendChild(bp);
-  d.appendChild(g2);
-  // Save button
-  const sv=el('div',{style:{marginTop:14,display:'flex',justifyContent:'flex-end'}});
-  const saveBtn=el('button',{style:{padding:'10px 24px',background:'rgba(0,255,136,0.15)',border:'1px solid #00ff88',borderRadius:8,color:'#00ff88',fontSize:11,fontWeight:800,boxShadow:glow('#00ff88',8),display:'flex',alignItems:'center',gap:8}},'💾 SAVE SETTINGS');
-  saveBtn.addEventListener('click',()=>{
-    const mem=parseInt(document.getElementById('memSlider')?.value||10);
-    const tone=document.getElementById('toneSelect')?.value||'moderate';
-    const time=document.getElementById('timeInput')?.value||'07:30';
-    const newS={...state.settings,copilotMemory:mem,devilTone:tone,briefingTime:time};
-    state.settings=newS;
-    try{localStorage.setItem('compass_settings',JSON.stringify(newS))}catch{}
-    renderSection();
-  });
-  sv.appendChild(saveBtn);d.appendChild(sv);
-  // Wire up toggle after render
-  requestAnimationFrame(()=>{
-    document.getElementById('briefingToggle')?.addEventListener('click',()=>{
-      state.settings={...state.settings,briefingEnabled:!state.settings.briefingEnabled};renderSection();
-    });
+  news.forEach(function(n){
+    var item=div('panel','','border-left:3px solid '+SENT_COLOR[n.sent]+';padding:12px 16px;margin-bottom:8px');
+    var top=div('');top.style.cssText='display:flex;justify-content:space-between;gap:12px;align-items:flex-start';
+    var left=div('');
+    var hl=div('');hl.style.cssText='font-size:13px;color:#e0f7ff;line-height:1.55;margin-bottom:5px';hl.textContent=n.headline;
+    var meta=div('');meta.style.cssText='font-size:9px;color:#3a6070';meta.textContent=n.source+' · '+n.date+(n.prov?' · 📍 '+n.prov:'');
+    left.appendChild(hl);left.appendChild(meta);top.appendChild(left);
+    var badges=div('');badges.style.cssText='display:flex;gap:4px;flex-shrink:0';
+    var b1=div('');b1.style.cssText='padding:2px 7px;border-radius:6px;font-size:9px;font-weight:800;letter-spacing:1px;background:'+CAT_COLOR[n.cat]+'15;color:'+CAT_COLOR[n.cat]+';border:1px solid '+CAT_COLOR[n.cat]+'35;text-transform:uppercase';b1.textContent=n.cat;
+    var b2=div('');b2.style.cssText='padding:2px 7px;border-radius:6px;font-size:9px;font-weight:800;letter-spacing:1px;background:'+SENT_COLOR[n.sent]+'15;color:'+SENT_COLOR[n.sent]+';border:1px solid '+SENT_COLOR[n.sent]+'35;text-transform:uppercase';b2.textContent=n.sent;
+    badges.appendChild(b1);badges.appendChild(b2);top.appendChild(badges);item.appendChild(top);d.appendChild(item);
   });
   return d;
 }
 
-// ── BRIEFINGS ─────────────────────────────────────────────────────────────────
 function renderBriefings(){
-  const prov=state.province;
-  const filtered=prov?state.briefings.filter(b=>!b.province||b.province===prov):state.briefings;
-  const d=el('div',{className:'fade'});
-  d.appendChild(SectionHeader('Saved Briefings','Auditable history of AI analyses',prov));
-  if(!filtered.length){
-    const empty=el('div',{style:{textAlign:'center',padding:'60px 0',color:'var(--dim)'}});
-    empty.innerHTML='<div style="font-size:40px;opacity:.2;margin-bottom:12px">📋</div><div style="font-size:13px">No briefings saved yet.</div><div style="font-size:11px;margin-top:4px">Generate analyses in the Copilot AI section.</div>';
-    d.appendChild(empty);return d;
-  }
-  const expBtn=el('button',{style:{padding:'7px 14px',background:'rgba(0,229,255,0.12)',border:'1px solid #00e5ff',borderRadius:8,color:'#00e5ff',fontSize:10,fontWeight:700,boxShadow:glow('#00e5ff',6),display:'flex',alignItems:'center',gap:6,marginBottom:14}},'⬇ EXPORT CSV');
-  expBtn.addEventListener('click',()=>{
-    const csv=['id,title,type,province,tone,horizon,generatedAt',...filtered.map(b=>`"${b.id}","${b.title}","${b.type}","${b.province||''}","${b.tone}","${b.horizon}","${b.generatedAt}"`)].join('\n');
-    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=`briefings_${new Date().toISOString().slice(0,10)}.csv`;a.click();
-  });
-  d.appendChild(expBtn);
-  filtered.forEach(b=>{
-    const item=el('div',{style:{background:'var(--panel)',border:'1px solid var(--br)',borderRadius:12,padding:'14px 16px',marginBottom:10,backdropFilter:'blur(14px)'}});
-    item.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px">
-      <div style="font-size:13px;font-weight:700;color:var(--tx)">${b.title}</div>
-      <span style="font-size:9px;font-weight:800;padding:2px 8px;border-radius:6px;background:${b.type==='devil'?'rgba(255,59,92,0.18)':'rgba(0,229,255,0.18)'};color:${b.type==='devil'?'#ff3b5c':'#00e5ff'};border:1px solid ${b.type==='devil'?'#ff3b5c':'#00e5ff'}35;white-space:nowrap">${b.type==='devil'?"DEVIL'S ADVOCATE":"BRIEFING"}</span>
-    </div>
-    <div style="display:flex;gap:14px;font-size:10px;color:var(--dim);flex-wrap:wrap;margin-bottom:8px">
-      <span>📍 ${b.province||'All'}</span><span>🎯 ${b.tone}</span><span>📅 ${b.horizon}</span><span>🕐 ${new Date(b.generatedAt).toLocaleString('en-GB')}</span>
-    </div>
-    <div style="font-size:11px;color:var(--mid);line-height:1.65;max-height:60px;overflow:hidden;mask-image:linear-gradient(to bottom,black 40%,transparent)">${b.content}</div>`;
-    const delBtn=el('button',{style:{marginTop:8,background:'none',border:'none',color:'var(--dim)',fontSize:11,cursor:'pointer',fontFamily:'var(--f)'}},'✕ Delete');
-    delBtn.addEventListener('click',()=>{
-      state.briefings=state.briefings.filter(x=>x.id!==b.id);
-      try{localStorage.setItem('compass_briefings',JSON.stringify(state.briefings))}catch{}
-      renderSection();
-    });
-    item.appendChild(delBtn);
-    d.appendChild(item);
+  var prov=S.province;
+  var filtered=prov?S.briefings.filter(function(b){return !b.province||b.province===prov;}):S.briefings;
+  var d=div('fade');
+  d.appendChild(sectionHeader('Saved Briefings','Auditable history of AI analyses with full metadata',prov));
+  if(!filtered.length){var empty=div('','','text-align:center;padding:60px 0;color:#3a6070');empty.innerHTML='<div style="font-size:40px;opacity:.2;margin-bottom:12px">📋</div><div style="font-size:13px">No briefings saved yet.</div><div style="font-size:11px;margin-top:4px">Generate analyses in the Copilot AI section.</div>';d.appendChild(empty);return d;}
+  var expb=btn('⬇ EXPORT CSV','');expb.style.cssText='padding:7px 14px;background:rgba(0,229,255,.12);border:1px solid #00e5ff;border-radius:8px;color:#00e5ff;font-size:10px;font-weight:700;margin-bottom:14px;font-family:inherit';
+  expb.addEventListener('click',function(){var csv=['id,title,type,province,tone,horizon,generatedAt'].concat(filtered.map(function(b){return '"'+b.id+'","'+b.title+'","'+b.type+'","'+(b.province||'')+'","'+b.tone+'","'+b.horizon+'","'+b.generatedAt+'"';})).join('\n');var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='briefings_'+new Date().toISOString().slice(0,10)+'.csv';a.click();});
+  d.appendChild(expb);
+  filtered.forEach(function(b){
+    var item=div('panel','','padding:14px 16px;margin-bottom:10px');
+    var topRow=div('');topRow.style.cssText='display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px';
+    var titleD=div('');titleD.style.cssText='font-size:13px;font-weight:700;color:#e0f7ff';titleD.textContent=b.title;topRow.appendChild(titleD);
+    var badge=div('');badge.style.cssText='font-size:9px;font-weight:800;padding:2px 8px;border-radius:6px;background:'+(b.type==='devil'?'rgba(255,59,92,.18)':'rgba(0,229,255,.18)')+';color:'+(b.type==='devil'?'#ff3b5c':'#00e5ff')+';border:1px solid '+(b.type==='devil'?'#ff3b5c':'#00e5ff')+'35;white-space:nowrap';badge.textContent=b.type==='devil'?"DEVIL'S ADVOCATE":"BRIEFING";topRow.appendChild(badge);item.appendChild(topRow);
+    var meta=div('');meta.style.cssText='display:flex;gap:14px;font-size:10px;color:#3a6070;flex-wrap:wrap;margin-bottom:8px';meta.textContent='📍 '+(b.province||'All')+' · 🎯 '+b.tone+' · 📅 '+b.horizon+' · 🕐 '+new Date(b.generatedAt).toLocaleString('en-GB');item.appendChild(meta);
+    var preview=div('');preview.style.cssText='font-size:11px;color:#7aacbc;line-height:1.65;max-height:60px;overflow:hidden';preview.textContent=b.content;item.appendChild(preview);
+    var delb=btn('✕ Delete','');delb.style.cssText='margin-top:8px;background:none;border:none;color:#3a6070;font-size:11px;font-family:inherit';
+    delb.addEventListener('click',function(){S.briefings=S.briefings.filter(function(x){return x.id!==b.id;});try{localStorage.setItem('compass_briefings',JSON.stringify(S.briefings));}catch(e){}renderSection();});
+    item.appendChild(delb);d.appendChild(item);
   });
   return d;
 }
 
-// ── SIDEBAR ───────────────────────────────────────────────────────────────────
-const NAV=[{key:'overview',e:'⬛',label:'Overview'},{key:'commodities',e:'📈',label:'Commodities'},{key:'distributors',e:'👥',label:'Distributors'},{key:'profitability',e:'💹',label:'Profitability'},{key:'landed',e:'📦',label:'Landed Cost'},{key:'copilot',e:'🧠',label:'Copilot AI',badge:'AI'},{key:'briefings',e:'📋',label:'Briefings'},{key:'news',e:'📰',label:'News'},{key:'settings',e:'⚙️',label:'Settings'}];
+function renderSettings(){
+  var s=S.settings;
+  var d=div('fade');
+  d.appendChild(sectionHeader('Settings','Configure Copilot, briefing schedule and preferences',null));
+  var g2=div('grid-2');
 
-function buildSidebar(){
-  const collapsed=state.sidebarCollapsed;
-  const prov=state.province;
-  const sb=el('aside',{className:'sidebar',style:{width:collapsed?'58px':'220px',height:'100vh',position:'sticky',top:0,background:'rgba(0,5,14,0.97)',borderRight:'1px solid var(--br)',display:'flex',flexDirection:'column',overflowY:'auto',overflowX:'hidden',transition:'width .22s ease',flexShrink:0,zIndex:10}});
-  // Logo
-  const logo=el('div',{style:{padding:collapsed?'14px 0':'14px 16px',display:'flex',alignItems:'center',gap:10,borderBottom:'1px solid var(--br)',justifyContent:collapsed?'center':'space-between'}});
-  if(!collapsed)logo.innerHTML=`<div><div style="font-size:13px;font-weight:900;color:#00e5ff;letter-spacing:3px;text-shadow:${glow('#00e5ff',14)}">COMPASS</div><div style="font-size:8px;color:var(--dim);font-weight:700;letter-spacing:2px">ANGOALISSAR · v2</div></div>`;
-  const tog=el('button',{style:{background:'none',border:'none',color:'var(--dim)',padding:4,display:'flex',fontSize:18}},'☰');
-  tog.addEventListener('click',()=>set('sidebarCollapsed',!collapsed));
-  logo.appendChild(tog);sb.appendChild(logo);
-  if(!collapsed){const pp=el('div',{style:{padding:'8px 12px',borderBottom:'1px solid var(--br)'}});pp.appendChild(ProvincePill(prov));sb.appendChild(pp);}
-  // Nav
-  const nav=el('nav',{style:{flex:1,paddingTop:6}});
-  NAV.forEach(({key,e,label,badge})=>{
-    const a=state.section===key;
-    const btn=el('button',{style:{width:'100%',display:'flex',alignItems:'center',gap:10,padding:collapsed?'10px 0':'10px 14px',justifyContent:collapsed?'center':'flex-start',background:a?'rgba(0,229,255,0.1)':'transparent',borderLeft:a?'2px solid #00e5ff':'2px solid transparent',border:'none',borderTop:'none',borderBottom:'none',borderRight:'none',cursor:'pointer',transition:'all .12s',position:'relative'}});
-    if(a){const bar=el('div',{style:{position:'absolute',left:2,top:'18%',bottom:'18%',width:'2px',background:'#00e5ff',borderRadius:1,boxShadow:glow('#00e5ff',8)}});btn.appendChild(bar);}
-    btn.innerHTML+=`<span style="font-size:15px;filter:${a?`drop-shadow(0 0 6px #00e5ff)`:'none'}">${e}</span>`;
-    if(!collapsed){
-      btn.innerHTML+=`<span style="font-size:11px;font-weight:${a?700:400};color:${a?'#00e5ff':'var(--dim)'};flex:1;text-align:left;letter-spacing:.5px">${label}</span>`;
-      if(badge)btn.innerHTML+=`<span style="font-size:8px;font-weight:900;padding:1px 5px;border-radius:4px;background:rgba(0,229,255,0.2);color:#00e5ff;border:1px solid rgba(0,229,255,0.4);letter-spacing:1px">${badge}</span>`;
-    }
-    btn.addEventListener('click',()=>{set('section',key);if(window.innerWidth<769)set('mobileOpen',false)});
-    nav.appendChild(btn);
+  var cp=div('panel','','padding:20px');
+  var cph=div('');cph.innerHTML='<div style="display:flex;align-items:center;gap:8px;margin-bottom:16px"><span style="font-size:16px">🧠</span><span style="font-size:12px;font-weight:800;color:#e0f7ff;letter-spacing:1px">COPILOT AI</span></div>';cp.appendChild(cph);
+  var ml=div('');ml.style.marginBottom='16px';
+  var mlt=div('');mlt.style.cssText='font-size:9px;color:#3a6070;font-weight:700;letter-spacing:1.5px;margin-bottom:7px';mlt.textContent='MEMORY LENGTH (TURNS)';ml.appendChild(mlt);
+  var mrow=div('');mrow.style.cssText='display:flex;align-items:center;gap:10px';
+  var slider=inp('range',s.copilotMemory,'flex:1;accent-color:#00e5ff',null);slider.min=5;slider.max=30;slider.step=5;slider.id='memSlider';
+  var memVal=div('');memVal.style.cssText='color:#e0f7ff;font-weight:800;min-width:24px';memVal.textContent=s.copilotMemory;memVal.id='memVal';
+  slider.addEventListener('input',function(){document.getElementById('memVal').textContent=this.value;});
+  mrow.appendChild(slider);mrow.appendChild(memVal);ml.appendChild(mrow);cp.appendChild(ml);
+  var tl=div('');tl.style.marginBottom='0';
+  var tlt=div('');tlt.style.cssText='font-size:9px;color:#3a6070;font-weight:700;letter-spacing:1.5px;margin-bottom:7px';tlt.textContent="DEVIL'S ADVOCATE INTENSITY";tl.appendChild(tlt);
+  var sel=document.createElement('select');sel.id='toneSelect';sel.style.cssText='background:rgba(0,229,255,.08);border:1px solid rgba(0,220,255,.12);border-radius:8px;padding:8px 10px;color:#e0f7ff;font-size:12px;width:100%;font-family:inherit';
+  [['mild','Mild'],['moderate','Moderate'],['brutal','Brutal']].forEach(function(oi){var o=document.createElement('option');o.value=oi[0];o.textContent=oi[1];if(s.devilTone===oi[0])o.selected=true;sel.appendChild(o);});
+  tl.appendChild(sel);cp.appendChild(tl);g2.appendChild(cp);
+
+  var bp=div('panel','','padding:20px');
+  bp.innerHTML='<div style="display:flex;align-items:center;gap:8px;margin-bottom:16px"><span style="font-size:16px">🔔</span><span style="font-size:12px;font-weight:800;color:#e0f7ff;letter-spacing:1px">DAILY BRIEFING</span></div>';
+  var togWrap=div('');togWrap.style.marginBottom='16px';
+  var togt=div('');togt.style.cssText='font-size:9px;color:#3a6070;font-weight:700;letter-spacing:1.5px;margin-bottom:7px';togt.textContent='ENABLE DAILY BRIEFING';togWrap.appendChild(togt);
+  var tog=div('');tog.id='briefingToggle';tog.style.cssText='width:44px;height:24px;border-radius:12px;cursor:pointer;background:'+(s.briefingEnabled?'#00e5ff':'rgba(0,229,255,.15)')+';border:1px solid '+(s.briefingEnabled?'#00e5ff':'rgba(0,220,255,.12)')+';position:relative;transition:all .2s';
+  var togDot=div('');togDot.style.cssText='position:absolute;top:3px;left:'+(s.briefingEnabled?22:3)+'px;width:16px;height:16px;border-radius:50%;background:'+(s.briefingEnabled?'#001820':'rgba(0,180,220,.3)')+';transition:left .2s';
+  tog.appendChild(togDot);togWrap.appendChild(tog);bp.appendChild(togWrap);
+  var timeWrap=div('');timeWrap.innerHTML='<div style="font-size:9px;color:#3a6070;font-weight:700;letter-spacing:1.5px;margin-bottom:7px">BRIEFING TIME</div>';
+  var timeInp=inp('time',s.briefingTime,'background:rgba(0,229,255,.06);border:1px solid rgba(0,220,255,.12);border-radius:8px;padding:8px 10px;color:'+(s.briefingEnabled?'#e0f7ff':'#3a6070')+';font-size:12px;width:100%;font-family:inherit;opacity:'+(s.briefingEnabled?1:.4),null);
+  timeInp.id='timeInput';if(!s.briefingEnabled)timeInp.disabled=true;
+  timeWrap.appendChild(timeInp);bp.appendChild(timeWrap);g2.appendChild(bp);
+  d.appendChild(g2);
+
+  var sv=div('');sv.style.cssText='margin-top:14px;display:flex;justify-content:flex-end';
+  var svb=btn('💾 SAVE SETTINGS','');svb.style.cssText='padding:10px 24px;background:rgba(0,255,136,.15);border:1px solid #00ff88;border-radius:8px;color:#00ff88;font-size:11px;font-weight:800;font-family:inherit;box-shadow:'+glow('#00ff88',8);
+  svb.addEventListener('click',function(){
+    var newS={copilotMemory:parseInt(document.getElementById('memSlider').value)||10,devilTone:document.getElementById('toneSelect').value||'moderate',briefingTime:document.getElementById('timeInput').value||'07:30',briefingEnabled:S.settings.briefingEnabled};
+    S.settings=newS;try{localStorage.setItem('compass_settings',JSON.stringify(newS));}catch(e){}renderSection();
+  });
+  sv.appendChild(svb);d.appendChild(sv);
+
+  requestAnimationFrame(function(){
+    var toggle=document.getElementById('briefingToggle');
+    if(toggle)toggle.addEventListener('click',function(){S.settings.briefingEnabled=!S.settings.briefingEnabled;renderSection();});
+  });
+  return d;
+}
+
+// ─── Sidebar ──────────────────────────────────────────────────────────────────
+var NAV=[{key:'overview',e:'⬛',label:'Overview'},{key:'commodities',e:'📈',label:'Commodities'},{key:'distributors',e:'👥',label:'Distributors'},{key:'profitability',e:'💹',label:'Profitability'},{key:'landed',e:'📦',label:'Landed Cost'},{key:'copilot',e:'🧠',label:'Copilot AI',badge:'AI'},{key:'briefings',e:'📋',label:'Briefings'},{key:'news',e:'📰',label:'News'},{key:'settings',e:'⚙️',label:'Settings'}];
+
+function buildSidebar(collapsed){
+  var sb=div('sidebar'+(collapsed?' collapsed':''));
+  var logo=div('');logo.style.cssText='padding:'+(collapsed?'14px 0':'14px 16px')+';display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(0,220,255,.12);justify-content:'+(collapsed?'center':'space-between');
+  if(!collapsed){var logoText=div('');logoText.innerHTML='<div style="font-size:13px;font-weight:900;color:#00e5ff;letter-spacing:3px;text-shadow:0 0 14px #00e5ff40,0 0 28px #00e5ff18">COMPASS</div><div style="font-size:8px;color:#3a6070;font-weight:700;letter-spacing:2px">ANGOALISSAR · v2</div>';logo.appendChild(logoText);}
+  var togBtn=btn('☰','');togBtn.style.cssText='background:none;border:none;color:#3a6070;padding:4px;font-size:18px;font-family:inherit';togBtn.addEventListener('click',function(){S.collapsed=!S.collapsed;render();});logo.appendChild(togBtn);sb.appendChild(logo);
+  if(!collapsed){var pp=div('');pp.style.cssText='padding:8px 12px;border-bottom:1px solid rgba(0,220,255,.12)';pp.appendChild(provincePill(S.province));sb.appendChild(pp);}
+  var nav=div('');nav.style.cssText='flex:1;padding-top:6px';
+  NAV.forEach(function(item){
+    var isA=S.section===item.key;
+    var nb=btn('','nav-btn'+(isA?' active':'')+(collapsed?' collapsed-btn':''));
+    if(isA){var bar=div('');bar.style.cssText='position:absolute;left:2px;top:18%;bottom:18%;width:2px;background:#00e5ff;border-radius:1px;box-shadow:'+glow('#00e5ff',8);nb.appendChild(bar);}
+    var ico=document.createElement('span');ico.style.cssText='font-size:15px;filter:'+(isA?'drop-shadow(0 0 6px #00e5ff)':'none');ico.textContent=item.e;nb.appendChild(ico);
+    if(!collapsed){var lbl=document.createElement('span');lbl.style.cssText='font-size:11px;font-weight:'+(isA?700:400)+';color:'+(isA?'#00e5ff':'#3a6070')+';flex:1;text-align:left;letter-spacing:.5px';lbl.textContent=item.label;nb.appendChild(lbl);}
+    if(!collapsed&&item.badge){var bdg=div('');bdg.style.cssText='font-size:8px;font-weight:900;padding:1px 5px;border-radius:4px;background:rgba(0,229,255,.2);color:#00e5ff;border:1px solid rgba(0,229,255,.4);letter-spacing:1px';bdg.textContent=item.badge;nb.appendChild(bdg);}
+    nb.addEventListener('click',function(){S.section=item.key;renderSection();closeMobileSidebar();});
+    nav.appendChild(nb);
   });
   sb.appendChild(nav);
-  // Mini feed
   if(!collapsed){
-    const feed=el('div',{style:{borderTop:'1px solid var(--br)',padding:'10px 12px'}});
-    feed.innerHTML=`<div style="font-size:8px;color:var(--dim);font-weight:800;margin-bottom:8px;letter-spacing:2px">◉ LIVE · ${prov?.toUpperCase()||'ALL'}</div>`;
-    NEWS.filter(n=>!prov||!n.prov||n.prov===prov).slice(0,3).forEach(n=>{
-      feed.innerHTML+=`<div style="display:flex;gap:6px;margin-bottom:8px;align-items:flex-start"><div style="width:4px;height:4px;border-radius:50%;background:${SENT[n.sent]};margin-top:4px;flex-shrink:0;box-shadow:0 0 4px ${SENT[n.sent]}"></div><div style="font-size:9px;color:var(--dim);line-height:1.4">${n.headline.slice(0,52)}…</div></div>`;
+    var feed=div('');feed.style.cssText='border-top:1px solid rgba(0,220,255,.12);padding:10px 12px';
+    var feedH=div('');feedH.style.cssText='font-size:8px;color:#3a6070;font-weight:800;margin-bottom:8px;letter-spacing:2px';feedH.textContent='◉ LIVE · '+(S.province?S.province.toUpperCase():'ALL');feed.appendChild(feedH);
+    NEWS.filter(function(n){return !S.province||!n.prov||n.prov===S.province;}).slice(0,3).forEach(function(n){
+      var row=div('');row.style.cssText='display:flex;gap:6px;margin-bottom:8px;align-items:flex-start';
+      var dot=div('');dot.style.cssText='width:4px;height:4px;border-radius:50%;background:'+SENT_COLOR[n.sent]+';margin-top:4px;flex-shrink:0';row.appendChild(dot);
+      var nt=div('');nt.style.cssText='font-size:9px;color:#3a6070;line-height:1.4';nt.textContent=n.headline.slice(0,52)+'…';row.appendChild(nt);feed.appendChild(row);
     });
     sb.appendChild(feed);
   }
   return sb;
 }
 
-// ── FX TICKER ─────────────────────────────────────────────────────────────────
-let tickerOffset=0,tickerRaf=null;
-function renderFXTicker(){
-  const el2=document.getElementById('fxTicker');
-  if(!el2)return;
-  const inner=el2.querySelector('.ticker-inner');
-  if(!inner)return;
-  const items=[...state.fxRates,...state.fxRates];
-  inner.innerHTML=items.map(r=>`<span style="padding:0 18px;font-size:10px;border-right:1px solid var(--br);display:inline-flex;align-items:center;gap:7px"><span style="color:var(--dim);font-weight:700">${r.pair}</span><span style="color:var(--tx);font-weight:800">${r.rate.toFixed(1)}</span><span style="color:${r.chg>=0?'#00ff88':'#ff3b5c'};font-size:9px">${r.chg>=0?'▲':'▼'} ${Math.abs(r.chg).toFixed(1)}</span></span>`).join('');
+// ─── Ticker ───────────────────────────────────────────────────────────────────
+function buildTickerHTML(){
+  var items=S.fxRates.concat(S.fxRates);
+  return items.map(function(r){return '<span style="padding:0 18px;font-size:10px;border-right:1px solid rgba(0,220,255,.12);display:inline-flex;align-items:center;gap:7px"><span style="color:#3a6070;font-weight:700">'+r.pair+'</span><span style="color:#e0f7ff;font-weight:800">'+r.rate.toFixed(1)+'</span><span style="color:'+(r.chg>=0?'#00ff88':'#ff3b5c')+';font-size:9px">'+(r.chg>=0?'▲':'▼')+' '+Math.abs(r.chg).toFixed(1)+'</span></span>';}).join('');
 }
 
-function startTickerAnim(){
+var tickerOffset=0,tickerRaf;
+function startTicker(){
   if(tickerRaf)cancelAnimationFrame(tickerRaf);
-  const run=()=>{
-    const inner=document.querySelector('.ticker-inner');
-    if(inner){tickerOffset-=.5;if(tickerOffset<-inner.scrollWidth/2)tickerOffset=0;inner.style.transform=`translateX(${tickerOffset}px)`;}
+  function run(){
+    var inner=document.querySelector('.ticker-inner');
+    if(inner){tickerOffset-=.5;if(tickerOffset<-inner.scrollWidth/2)tickerOffset=0;inner.style.transform='translateX('+tickerOffset+'px)';}
     tickerRaf=requestAnimationFrame(run);
-  };
+  }
   tickerRaf=requestAnimationFrame(run);
 }
 
-// ── MAIN RENDER ───────────────────────────────────────────────────────────────
+// ─── Province helpers ─────────────────────────────────────────────────────────
+function setProv(p){S.province=p;try{p?localStorage.setItem('compass_province',p):localStorage.removeItem('compass_province');}catch(e){}render();}
+
+function buildProvDropdown(parent){
+  var existing=document.getElementById('provDD');if(existing)existing.remove();
+  var dd=div('panel');dd.id='provDD';dd.style.cssText='position:absolute;top:110%;right:0;width:210px;z-index:100;padding:6px;max-height:280px;overflow-y:auto;border:1px solid rgba(0,220,255,.5);box-shadow:0 8px 32px rgba(0,0,0,.75)';
+  var allb=btn('All Provinces','');allb.style.cssText='width:100%;padding:7px 10px;border-radius:6px;background:'+(!S.province?'rgba(0,229,255,.15)':'transparent')+';border:none;color:'+(!S.province?'#00e5ff':'#3a6070')+';text-align:left;font-size:11px;font-weight:'+(!S.province?700:400)+';font-family:inherit';
+  allb.addEventListener('click',function(e){e.stopPropagation();setProv(null);dd.remove();});dd.appendChild(allb);
+  PROVINCES.forEach(function(p){var pb=btn(p,'');pb.style.cssText='width:100%;padding:6px 10px;border-radius:6px;background:'+(S.province===p?'rgba(0,229,255,.12)':'transparent')+';border:none;color:'+(S.province===p?'#00e5ff':'#3a6070')+';text-align:left;font-size:10px;font-weight:'+(S.province===p?700:400)+';font-family:inherit';pb.addEventListener('click',function(e){e.stopPropagation();setProv(p);dd.remove();});dd.appendChild(pb);});
+  parent.style.position='relative';parent.appendChild(dd);
+  setTimeout(function(){document.addEventListener('click',function rmDD(){dd.remove();document.removeEventListener('click',rmDD);});},10);
+}
+
+function closeMobileSidebar(){var mob=document.getElementById('mobileSidebar');if(mob)document.body.removeChild(mob);}
+
+// ─── CSV / PPTX Modals ────────────────────────────────────────────────────────
+function openCSV(){
+  var prov=S.province,prices=prov?ALL_PRICES.filter(function(p){return p.province===prov;}):ALL_PRICES;
+  var mb=div('modal-bg');
+  var box=div('panel modal-box');
+  var hrow=div('');hrow.style.cssText='display:flex;justify-content:space-between;align-items:center;margin-bottom:16px';
+  var htxt=div('');htxt.innerHTML='<div style="font-size:14px;font-weight:900;color:#e0f7ff">EXPORT CSV</div>';htxt.appendChild(provincePill(prov));hrow.appendChild(htxt);
+  var xb=btn('✕','');xb.style.cssText='background:none;border:none;color:#3a6070;font-size:20px;font-family:inherit';xb.addEventListener('click',function(){mb.remove();});hrow.appendChild(xb);box.appendChild(hrow);
+  var info=div('');info.style.cssText='font-size:10px;color:#3a6070;margin-bottom:10px';info.textContent=prices.length+' rows · Preview:';box.appendChild(info);
+  var prev=div('');prev.style.cssText='overflow-x:auto;background:rgba(0,229,255,.04);border-radius:8px;padding:10px;margin-bottom:16px;border:1px solid rgba(0,220,255,.12)';
+  var tbl=document.createElement('table');var cols=['province','commodity','price','currency','unit'];
+  var thead=document.createElement('thead');thead.innerHTML='<tr>'+cols.map(function(c){return '<th style="color:#00e5ff">'+c+'</th>';}).join('')+'</tr>';tbl.appendChild(thead);
+  var tbody=document.createElement('tbody');prices.slice(0,5).forEach(function(r){var tr=document.createElement('tr');tr.innerHTML=cols.map(function(c){return '<td style="color:#7aacbc;font-size:10px;padding:4px 10px;border-top:1px solid rgba(0,220,255,.08)">'+r[c]+'</td>';}).join('');tbody.appendChild(tr);});tbl.appendChild(tbody);prev.appendChild(tbl);box.appendChild(prev);
+  var dlb=btn('⬇ DOWNLOAD CSV','');dlb.style.cssText='padding:11px 22px;background:rgba(0,229,255,.15);border:1px solid #00e5ff;border-radius:8px;color:#00e5ff;font-size:11px;font-weight:800;font-family:inherit;box-shadow:'+glow('#00e5ff',8);
+  dlb.addEventListener('click',function(){var csv=[cols.join(',')].concat(prices.map(function(r){return cols.map(function(c){return r[c];}).join(',');})).join('\n');var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='compass_'+(prov||'all')+'_'+new Date().toISOString().slice(0,10)+'.csv';a.click();mb.remove();});
+  box.appendChild(dlb);mb.appendChild(box);document.body.appendChild(mb);
+}
+
+function openPPTX(){
+  var prov=S.province;
+  var mb=div('modal-bg');
+  var box=div('panel modal-box');box.style.maxWidth='500px';box.style.border='1px solid rgba(0,220,255,.5)';
+  var hrow=div('');hrow.style.cssText='display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px';
+  var htxt=div('');htxt.innerHTML='<div style="font-size:15px;font-weight:900;color:#e0f7ff;letter-spacing:1px">BOARD PRESENTATION</div><div style="font-size:10px;color:#3a6070;margin-top:3px">Export to PowerPoint</div>';htxt.appendChild(provincePill(prov));hrow.appendChild(htxt);
+  var xb=btn('✕','');xb.style.cssText='background:none;border:none;color:#3a6070;font-size:20px;font-family:inherit';xb.addEventListener('click',function(){mb.remove();});hrow.appendChild(xb);box.appendChild(hrow);
+  [['📊','Executive Summary','Revenue, volume, margin, DSO KPIs'],['💹','Market Prices','Commodity prices by province and trend'],['👥','Distributor Performance','Rankings, scorecards, radar profile'],['📈','Profitability Analysis','Margin by brand, region, channel, SKU'],['⚡','Risks & Opportunities','Market intelligence and competitive analysis'],['🎯','Action Plan','3 priority commercial actions']].forEach(function(si,i){
+    var row=div('');row.style.cssText='display:flex;align-items:center;gap:12px;padding:10px 14px;background:rgba(0,229,255,.07);border:1px solid rgba(0,220,255,.12);border-radius:8px;margin-bottom:8px';
+    row.innerHTML='<span style="font-size:18px">'+si[0]+'</span><div style="flex:1"><div style="font-size:12px;font-weight:700;color:#e0f7ff">Slide '+(i+1)+': '+si[1]+'</div><div style="font-size:10px;color:#3a6070">'+si[2]+'</div></div>';
+    box.appendChild(row);
+  });
+  var expb=btn('📊 EXPORT PPTX','');expb.style.cssText='width:100%;margin-top:4px;padding:13px;background:rgba(0,229,255,.15);border:1px solid #00e5ff;border-radius:10px;color:#00e5ff;font-size:12px;font-weight:800;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:'+glow('#00e5ff',10);
+  expb.addEventListener('click',function(){var lines=['ANGOALISSAR COMPASS — BOARD PRESENTATION','Generated: '+new Date().toLocaleString('en-GB'),'Scope: '+(prov||'All Angola'),''].concat([['Executive Summary','Revenue, volume, margin KPIs'],['Market Prices','Commodity prices by province'],['Distributor Performance','Rankings and scorecards'],['Profitability Analysis','Margin by brand and channel'],['Risks & Opportunities','Market intelligence'],['Action Plan','3 priority actions']].map(function(si,i){return 'SLIDE '+(i+1)+': '+si[0]+'\n'+si[1];}));var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([lines.join('\n')],{type:'text/plain'}));a.download='Angoalissar_Board_'+(prov||'Angola')+'_'+new Date().toISOString().slice(0,10)+'.txt';a.click();mb.remove();});
+  box.appendChild(expb);mb.appendChild(box);document.body.appendChild(mb);
+}
+
+// ─── Main render ──────────────────────────────────────────────────────────────
 function renderSection(){
-  const content=document.getElementById('mainContent');
-  if(!content)return;
-  content.innerHTML='';
-  const sec={overview:renderOverview,commodities:renderCommodities,distributors:renderDistributors,profitability:renderProfitability,landed:renderLandedCost,copilot:renderCopilot,news:renderNews,settings:renderSettings,briefings:renderBriefings}[state.section];
-  if(sec)content.appendChild(sec());
-  content.scrollTop=0;
-}
-
-function buildCSVModal(){
-  const prov=state.province;
-  const prices=prov?ALL_PRICES.filter(p=>p.province===prov):ALL_PRICES;
-  const m=el('div',{style:{position:'fixed',inset:0,background:'rgba(0,0,0,0.82)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:20,backdropFilter:'blur(6px)'}});
-  const box=el('div',{className:'panel',style:{padding:26,width:'100%',maxWidth:520,border:'1px solid var(--brh)'}});
-  box.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><div><div style="font-size:14px;font-weight:900;color:var(--tx);text-shadow:${glow('#00e5ff',8)}">EXPORT CSV</div></div></div>`;
-  box.querySelector('div').querySelector('div').appendChild(ProvincePill(prov));
-  const closeBtn=el('button',{style:{background:'none',border:'none',color:'var(--dim)',fontSize:20,cursor:'pointer'}},'✕');
-  closeBtn.addEventListener('click',()=>{document.body.removeChild(m)});
-  box.querySelector('div').appendChild(closeBtn);
-  box.innerHTML+=`<div style="font-size:10px;color:var(--dim);margin-bottom:10px">${prices.length} rows · Preview:</div>
-  <div style="overflow-x:auto;background:rgba(0,229,255,0.04);border-radius:8px;padding:10px;margin-bottom:16px;border:1px solid var(--br)">
-  <table style="font-size:10px;border-collapse:collapse;white-space:nowrap">
-  <thead><tr>${['province','commodity','price','currency','unit'].map(c=>`<th style="padding:4px 10px;color:#00e5ff;font-weight:700;text-align:left">${c}</th>`).join('')}</tr></thead>
-  <tbody>${prices.slice(0,5).map(r=>`<tr>${['province','commodity','price','currency','unit'].map(c=>`<td style="padding:4px 10px;color:var(--mid);border-top:1px solid rgba(0,220,255,0.08)">${r[c]}</td>`).join('')}</tr>`).join('')}</tbody>
-  </table></div>`;
-  const dlBtn=el('button',{style:{padding:'11px 22px',background:'rgba(0,229,255,0.15)',border:'1px solid #00e5ff',borderRadius:8,color:'#00e5ff',fontSize:11,fontWeight:800,boxShadow:glow('#00e5ff',8),display:'flex',alignItems:'center',gap:8}},'⬇ DOWNLOAD CSV');
-  dlBtn.addEventListener('click',()=>{
-    const cols=['province','commodity','price','currency','unit'];
-    const csv=[cols.join(','),...prices.map(r=>cols.map(c=>r[c]).join(','))].join('\n');
-    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=`compass_${prov||'all'}_${new Date().toISOString().slice(0,10)}.csv`;a.click();
-    document.body.removeChild(m);
-  });
-  box.appendChild(dlBtn);m.appendChild(box);document.body.appendChild(m);
-}
-
-function buildPPTXModal(){
-  const prov=state.province;
-  const m=el('div',{style:{position:'fixed',inset:0,background:'rgba(0,0,0,0.82)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:20,backdropFilter:'blur(6px)'}});
-  const box=el('div',{className:'panel',style:{padding:28,width:'100%',maxWidth:500,border:'1px solid var(--brh)',boxShadow:glow('#00e5ff',20)}});
-  box.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px"><div><div style="font-size:15px;font-weight:900;color:var(--tx);letter-spacing:1px;text-shadow:${glow('#00e5ff',8)}">BOARD PRESENTATION</div><div style="font-size:10px;color:var(--dim);margin-top:3px">Export to PowerPoint</div></div></div>`;
-  box.querySelector('div').querySelector('div').appendChild(ProvincePill(prov));
-  const closeBtn2=el('button',{style:{background:'none',border:'none',color:'var(--dim)',fontSize:20,cursor:'pointer'}},'✕');
-  closeBtn2.addEventListener('click',()=>document.body.removeChild(m));
-  box.querySelector('div').appendChild(closeBtn2);
-  [['📊','Executive Summary','Revenue, volume, margin, DSO KPIs'],['💹','Market Prices','Commodity prices by province and trend'],['👥','Distributor Performance','Rankings, scorecards, radar profile'],['📈','Profitability Analysis','Margin by brand, region, channel, SKU'],['⚡','Risks & Opportunities','Market intelligence and competitive analysis'],['🎯','Action Plan','3 priority commercial actions']].forEach(([e,t,d],i)=>{
-    box.innerHTML+=`<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:rgba(0,229,255,0.07);border:1px solid var(--br);border-radius:8px;margin-bottom:8px"><span style="font-size:18px">${e}</span><div style="flex:1"><div style="font-size:12px;font-weight:700;color:var(--tx)">Slide ${i+1}: ${t}</div><div style="font-size:10px;color:var(--dim)">${d}</div></div><div style="width:14px;height:14px;border-radius:50%;border:1.5px solid rgba(0,229,255,.5);display:flex;align-items:center;justify-content:center"><div style="width:5px;height:5px;border-radius:50%;background:#00e5ff"></div></div></div>`;
-  });
-  const expBtn=el('button',{style:{width:'100%',marginTop:4,padding:13,background:'rgba(0,229,255,0.15)',border:'1px solid #00e5ff',borderRadius:10,color:'#00e5ff',fontSize:12,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center',gap:10,textShadow:glow('#00e5ff'),boxShadow:glow('#00e5ff',10)}},'📊 EXPORT PPTX');
-  expBtn.addEventListener('click',()=>{
-    const lines=['ANGOALISSAR COMPASS — BOARD PRESENTATION',`Generated: ${new Date().toLocaleString('en-GB')}`,`Scope: ${prov||'All Angola'}`,'',...[['Executive Summary','Revenue, volume, margin KPIs'],['Market Prices','Commodity prices by province'],['Distributor Performance','Rankings and scorecards'],['Profitability Analysis','Margin by brand and channel'],['Risks & Opportunities','Market intelligence'],['Action Plan','3 priority actions']].flatMap(([t,d],i)=>[`SLIDE ${i+1}: ${t}`,d,''])];
-    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([lines.join('\n')],{type:'text/plain'}));a.download=`Angoalissar_Board_${prov||'Angola'}_${new Date().toISOString().slice(0,10)}.txt`;a.click();
-    document.body.removeChild(m);
-  });
-  box.appendChild(expBtn);m.appendChild(box);document.body.appendChild(m);
+  var mc=document.getElementById('mainContent');if(!mc)return;mc.innerHTML='';
+  var fns={overview:renderOverview,commodities:renderCommodities,distributors:renderDistributors,profitability:renderProfitability,landed:renderLandedCost,copilot:renderCopilot,briefings:renderBriefings,news:renderNews,settings:renderSettings};
+  var fn=fns[S.section];if(fn)mc.appendChild(fn());
 }
 
 function render(){
-  app.innerHTML='';
-  // Sidebar (desktop)
-  app.appendChild(buildSidebar());
-  // Main column
-  const main=el('main',{style:{flex:1,minHeight:'100vh',overflowX:'hidden'}});
+  var app=document.getElementById('app');app.innerHTML='';
+  // Sidebar
+  app.appendChild(buildSidebar(S.collapsed));
+  // Main
+  var main=document.createElement('main');
   // Topbar
-  const header=el('header',{style:{position:'sticky',top:0,zIndex:50,background:'rgba(1,8,20,0.92)',backdropFilter:'blur(16px)',borderBottom:'1px solid var(--br)',padding:'10px 22px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,flexWrap:'wrap'}});
-  const hl=el('div',{style:{display:'flex',alignItems:'center',gap:12}});
-  const mobBtn=el('button',{className:'mob-btn',style:{background:'none',border:'none',color:'var(--cd)',padding:4,fontSize:20,display:'none'}},'☰');
-  mobBtn.addEventListener('click',()=>{
-    // mobile sidebar toggle
-    const existing=document.getElementById('mobileSidebar');
-    if(existing){document.body.removeChild(existing);return;}
-    const overlay=el('div',{id:'mobileSidebar',style:{position:'fixed',inset:0,zIndex:200}});
-    const bg=el('div',{style:{position:'absolute',inset:0,background:'rgba(0,0,0,0.75)'}});
-    bg.addEventListener('click',()=>document.body.removeChild(overlay));
-    const sb2=buildSidebar();
-    sb2.style.cssText='position:absolute;left:0;top:0;bottom:0;width:220px;display:flex!important';
-    overlay.appendChild(bg);overlay.appendChild(sb2);document.body.appendChild(overlay);
+  var topbar=div('topbar');
+  var tl=div('');tl.style.cssText='display:flex;align-items:center;gap:12px';
+  var mobBtn=btn('☰','mob-btn');mobBtn.style.cssText='background:none;border:none;color:#00b8cc;padding:4px;font-size:20px;font-family:inherit;display:none';
+  mobBtn.addEventListener('click',function(){
+    var existing=document.getElementById('mobileSidebar');if(existing){existing.remove();return;}
+    var overlay=div('');overlay.id='mobileSidebar';overlay.style.cssText='position:fixed;inset:0;z-index:200';
+    var bg=div('');bg.style.cssText='position:absolute;inset:0;background:rgba(0,0,0,.75)';bg.addEventListener('click',function(){overlay.remove();});
+    var msb=buildSidebar(false);msb.style.cssText=msb.style.cssText+'position:absolute;left:0;top:0;bottom:0;display:flex!important';
+    overlay.appendChild(bg);overlay.appendChild(msb);document.body.appendChild(overlay);
   });
-  hl.appendChild(mobBtn);
-  const secLabel=NAV.find(n=>n.key===state.section)?.label||'';
-  hl.innerHTML+=`<div><div style="font-size:13px;font-weight:800;color:var(--tx);letter-spacing:1px;text-shadow:${glow('#00e5ff',6)}">${secLabel.toUpperCase()}</div><div style="font-size:9px;color:var(--dim);letter-spacing:1px">${new Date().toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'})}</div></div>`;
-  header.appendChild(hl);
-  // Topbar right
-  const hr=el('div',{style:{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}});
-  // Province selector
-  const provWrap=el('div',{style:{position:'relative'}});
-  const provBtn=el('button',{style:{display:'flex',alignItems:'center',gap:6,padding:'6px 12px',background:'rgba(0,229,255,0.08)',border:'1px solid var(--br)',borderRadius:8,color:'var(--mid)',fontSize:10}});
-  provBtn.innerHTML=`📍 <span style="color:var(--tx);font-weight:700">${state.province||'ALL'}</span> ▾`;
-  provBtn.addEventListener('click',e=>{e.stopPropagation();const dd=document.getElementById('provDD');if(dd)dd.remove();else buildProvDD(provWrap)});
-  provWrap.appendChild(provBtn);hr.appendChild(provWrap);
-  const pptxBtn=el('button',{style:{padding:'6px 12px',background:'rgba(0,102,255,0.12)',border:'1px solid rgba(0,102,255,.5)',borderRadius:8,color:'#6699ff',fontSize:10,fontWeight:700,display:'flex',alignItems:'center',gap:5}},'📊 PPTX');
-  pptxBtn.addEventListener('click',buildPPTXModal);hr.appendChild(pptxBtn);
-  const csvBtn=el('button',{style:{padding:'6px 12px',background:'rgba(0,229,255,0.08)',border:'1px solid var(--br)',borderRadius:8,color:'var(--cd)',fontSize:10,fontWeight:700,display:'flex',alignItems:'center',gap:5}},'⬇ CSV');
-  csvBtn.addEventListener('click',buildCSVModal);hr.appendChild(csvBtn);
-  header.appendChild(hr);main.appendChild(header);
+  tl.appendChild(mobBtn);
+  var secInfo=div('');
+  var secName=NAV.find(function(n){return n.key===S.section;});
+  secInfo.innerHTML='<div style="font-size:13px;font-weight:800;color:#e0f7ff;letter-spacing:1px;text-shadow:'+glow('#00e5ff',6)+'">'+((secName&&secName.label)||'').toUpperCase()+'</div><div style="font-size:9px;color:#3a6070;letter-spacing:1px">'+new Date().toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'})+'</div>';
+  tl.appendChild(secInfo);topbar.appendChild(tl);
+  var tr=div('');tr.style.cssText='display:flex;gap:8px;align-items:center;flex-wrap:wrap';
+  // Province btn
+  var provWrap=div('');provWrap.style.position='relative';
+  var provBtn=btn('','');provBtn.style.cssText='display:flex;align-items:center;gap:6px;padding:6px 12px;background:rgba(0,229,255,.08);border:1px solid rgba(0,220,255,.12);border-radius:8px;color:#7aacbc;font-size:10px;font-family:inherit';
+  provBtn.innerHTML='📍 <span style="color:#e0f7ff;font-weight:700">'+(S.province||'ALL')+'</span> ▾';
+  provBtn.addEventListener('click',function(e){e.stopPropagation();buildProvDropdown(provWrap);});
+  provWrap.appendChild(provBtn);tr.appendChild(provWrap);
+  var pptxBtn=btn('📊 PPTX','');pptxBtn.style.cssText='padding:6px 12px;background:rgba(0,102,255,.12);border:1px solid rgba(0,102,255,.5);border-radius:8px;color:#6699ff;font-size:10px;font-weight:700;font-family:inherit';
+  pptxBtn.addEventListener('click',openPPTX);tr.appendChild(pptxBtn);
+  var csvBtn=btn('⬇ CSV','');csvBtn.style.cssText='padding:6px 12px;background:rgba(0,229,255,.08);border:1px solid rgba(0,220,255,.12);border-radius:8px;color:#00b8cc;font-size:10px;font-weight:700;font-family:inherit';
+  csvBtn.addEventListener('click',openCSV);tr.appendChild(csvBtn);
+  topbar.appendChild(tr);main.appendChild(topbar);
   // FX Ticker
-  const ticker=el('div',{id:'fxTicker',style:{overflow:'hidden',borderTop:'1px solid var(--br)',borderBottom:'1px solid var(--br)',height:26,display:'flex',alignItems:'center',background:'rgba(0,6,16,0.9)'}});
-  ticker.innerHTML=`<div class="ticker-inner" style="display:flex;white-space:nowrap;will-change:transform">${[...state.fxRates,...state.fxRates].map(r=>`<span style="padding:0 18px;font-size:10px;border-right:1px solid var(--br);display:inline-flex;align-items:center;gap:7px"><span style="color:var(--dim);font-weight:700">${r.pair}</span><span style="color:var(--tx);font-weight:800">${r.rate.toFixed(1)}</span><span style="color:${r.chg>=0?'#00ff88':'#ff3b5c'};font-size:9px">${r.chg>=0?'▲':'▼'} ${Math.abs(r.chg).toFixed(1)}</span></span>`).join('')}</div>`;
-  main.appendChild(ticker);
+  var ticker=div('ticker-wrap');ticker.innerHTML='<div class="ticker-inner" style="display:flex;white-space:nowrap">'+buildTickerHTML()+'</div>';main.appendChild(ticker);
   // Province pill row
-  const ppRow=el('div',{style:{padding:'10px 22px 0',display:'flex',alignItems:'center',gap:8}});
-  ppRow.appendChild(ProvincePill(state.province));
-  if(state.province){
-    const clr=el('button',{style:{fontSize:9,color:'var(--dim)',background:'none',border:'none',cursor:'pointer',letterSpacing:.5}},'✕ CLEAR');
-    clr.addEventListener('click',()=>{set('province',null);try{localStorage.removeItem('compass_province')}catch{}});
-    ppRow.appendChild(clr);
-  }
+  var ppRow=div('');ppRow.style.cssText='padding:10px 22px 0;display:flex;align-items:center;gap:8px';ppRow.appendChild(provincePill(S.province));
+  if(S.province){var clr=btn('✕ CLEAR','');clr.style.cssText='font-size:9px;color:#3a6070;background:none;border:none;letter-spacing:.5px;font-family:inherit';clr.addEventListener('click',function(){setProv(null);});ppRow.appendChild(clr);}
   main.appendChild(ppRow);
   // Content
-  const content=el('div',{id:'mainContent',style:{padding:'18px 22px 56px'}});
-  main.appendChild(content);
+  var mc=div('content');mc.id='mainContent';main.appendChild(mc);
   app.appendChild(main);
   renderSection();
-  requestAnimationFrame(startTickerAnim);
-  document.addEventListener('click',()=>{document.getElementById('provDD')?.remove()},{once:true});
+  requestAnimationFrame(startTicker);
 }
 
-function buildProvDD(parent){
-  const dd=el('div',{id:'provDD',style:{position:'absolute',top:'110%',right:0,width:210,background:'rgba(0,10,22,0.98)',border:'1px solid var(--brh)',borderRadius:10,zIndex:100,padding:6,boxShadow:`0 8px 32px rgba(0,0,0,.75),${glow('#00e5ff',18)}`,maxHeight:280,overflowY:'auto'}});
-  const allBtn=el('button',{style:{width:'100%',padding:'7px 10px',borderRadius:6,background:!state.province?'rgba(0,229,255,0.15)':'transparent',border:'none',color:!state.province?'#00e5ff':'var(--dim)',textAlign:'left',fontSize:11,fontWeight:!state.province?700:400,fontFamily:'var(--f)'}},'All Provinces');
-  allBtn.addEventListener('click',e=>{e.stopPropagation();set('province',null);try{localStorage.removeItem('compass_province')}catch{};dd.remove()});
-  dd.appendChild(allBtn);
-  PROVINCES.forEach(p=>{
-    const btn=el('button',{style:{width:'100%',padding:'6px 10px',borderRadius:6,background:state.province===p?'rgba(0,229,255,0.12)':'transparent',border:'none',color:state.province===p?'#00e5ff':'var(--dim)',textAlign:'left',fontSize:10,fontWeight:state.province===p?700:400,fontFamily:'var(--f)'}},p);
-    btn.addEventListener('click',e=>{e.stopPropagation();set('province',p);try{localStorage.setItem('compass_province',p)}catch{};dd.remove()});
-    dd.appendChild(btn);
-  });
-  parent.appendChild(dd);
-}
-
-// Boot
 render();
 </script>
 </body>
