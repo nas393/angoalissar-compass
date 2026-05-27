@@ -588,7 +588,7 @@ function renderLandedCost(){
   var mp=div(''); mp.className='panel'; mp.style.cssText='padding:20px;text-align:center;border:1px solid '+mc.replace('var(--','').replace(')','')+'40';
   mp.innerHTML='<div style="font-size:9px;color:var(--dim);font-weight:700;letter-spacing:1.5px;margin-bottom:6px">ESTIMATED GROSS MARGIN</div>'
     +'<div style="font-size:52px;font-weight:900;color:'+mc+';letter-spacing:-3px">'+margin+'%</div>'
-    +'<div style="font-size:10px;color:var(--dim);margin-top:4px">'+(margin<0?'⚠ LOSS':'margin<5?⚡ COMPRESSED':'✓ HEALTHY')+'</div>';
+    +'<div style="font-size:10px;color:var(--dim);margin-top:4px">'+(margin<0?'⚠ LOSS — RENEGOTIATE':margin<5?'⚡ COMPRESSED MARGIN':'✓ HEALTHY MARGIN')+'</div>';
   rp.appendChild(mp); g2.appendChild(rp); d.appendChild(g2);
   return d;
 }
