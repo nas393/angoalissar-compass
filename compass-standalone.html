@@ -805,6 +805,229 @@ async function sendMsg(msg){
 async function genQuickBriefing(){var prompt='Generate a concise executive briefing for Angoalissar FMCG Angola. Scope: '+(S.province||'All Angola')+'. Horizon: '+S.copilotHorizon+'. Key topics: commodity prices, margins, competitive risks, 3 priority actions. Be direct.';await sendMsg(prompt);}
 async function genDevil(){var toneMap={mild:'gentle but honest',moderate:'direct and critical',brutal:'brutally honest, no filters'};var prompt="Devil's Advocate ("+toneMap[S.copilotTone]+'): Challenge Angoalissar\'s current commercial strategy. Scope: '+(S.province||'All Angola')+'. Identify blind spots, risks being ignored, poor decisions. Be '+(S.copilotTone)+'.';await sendMsg(prompt);}
 
+// DATA IMPORT
+function renderDataImport(){
+  var d=div('');d.className='fade';
+  d.appendChild(secHead('Data Import','Feed prices and records via Excel, CSV or copy-paste. Nothing sent to any server.',null));
+
+  // ── SECTION 1: Copy-paste bulk price entry ────────────────────────────
+  var pastePanel=div('');pastePanel.className='panel';pastePanel.style.cssText='padding:20px;margin-bottom:14px';
+  pastePanel.innerHTML='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:18px">📋</span><span style="font-size:13px;font-weight:800;color:var(--tx);letter-spacing:1px">COPY-PASTE FROM EXCEL / SPREADSHEET</span></div>'
+    +'<div style="font-size:11px;color:var(--mid);margin-bottom:14px;line-height:1.7">'
+    +'Copy cells from any spreadsheet and paste below. Expected columns (tab or comma separated):<br>'
+    +'<code style="font-size:10px;color:var(--c);background:var(--c)10;padding:3px 8px;border-radius:4px;display:inline-block;margin-top:4px">Commodity | Origin | FOB USD/MT | Date (YYYY-MM-DD) | Notes</code><br>'
+    +'<span style="font-size:10px;color:var(--dim);margin-top:4px;display:block">Example: Wheat Flour&nbsp;&nbsp;Black Sea&nbsp;&nbsp;245.50&nbsp;&nbsp;2026-05-27&nbsp;&nbsp;Bloomberg CBOT</span>'
+    +'</div>';
+
+  var ta=el('textarea','width:100%;background:var(--panel);border:1px solid var(--br);border-radius:8px;padding:10px 12px;color:var(--tx);font-size:12px;font-family:var(--f);resize:vertical;height:140px;line-height:1.6');
+  ta.placeholder='Paste your data here…\n\nWheat Flour\tBlack Sea\t245.50\t2026-05-27\tBloomberg\nRice\tThailand\t418.00\t2026-05-27\tS&P Global\nSugar\tBrazil\t521.00\t2026-05-27\tCME';
+  ta.id='pasteTA';
+  pastePanel.appendChild(ta);
+
+  var prow=div('display:flex;gap:10px;margin-top:10px;align-items:center;flex-wrap:wrap');
+  var parseBtn=btn('⚡ Import Pasted Data','padding:9px 20px;background:var(--c);color:var(--bg);border:none;border-radius:8px;font-size:11px;font-weight:800',function(){
+    var raw=document.getElementById('pasteTA').value.trim();
+    if(!raw){alert('Nothing pasted yet.');return;}
+    var lines=raw.split('\n').filter(function(l){return l.trim();});
+    var imported=0,skipped=0,errors=[];
+    lines.forEach(function(line){
+      // Support tab-separated or comma-separated
+      var sep=line.indexOf('\t')>=0?'\t':',';
+      var cols=line.split(sep).map(function(c){return c.trim();});
+      if(cols.length<3){skipped++;return;}
+      var commName=cols[0], origin=cols[1], fobRaw=cols[2], date=cols[3]||new Date().toISOString().slice(0,10), notes=cols[4]||'';
+      var fob=parseFloat(fobRaw.replace(/[^0-9.]/g,''));
+      if(!fob||isNaN(fob)){skipped++;return;}
+      // Match commodity name (fuzzy)
+      var COMM_MAP={'wheat flour':'wheat','wheat':'wheat','rice':'rice','sugar':'sugar','maize':'maize','corn':'maize','oil':'oil','sunflower':'oil','beans':'beans','soybean':'soybean','soy':'soybean','palm oil':'palmoil','palm':'palmoil'};
+      var key=COMM_MAP[commName.toLowerCase().trim()];
+      if(!key){
+        // Try partial match
+        var commLower=commName.toLowerCase();
+        Object.keys(COMM_MAP).forEach(function(k){if(commLower.indexOf(k)>=0)key=COMM_MAP[k];});
+      }
+      if(!key){errors.push('Unknown commodity: "'+commName+'"');skipped++;return;}
+      DB.commodities[key].fobUSD=fob;
+      DB.commodities[key].origin=origin||DB.commodities[key].origin;
+      DB.commodities[key].date=date;
+      if(notes)DB.commodities[key].notes=notes;
+      // Add to history
+      DB.priceHistory[key]=DB.priceHistory[key]||[];
+      DB.priceHistory[key].push({date:date,price:fob});
+      if(DB.priceHistory[key].length>90)DB.priceHistory[key].shift();
+      imported++;
+    });
+    saveDB();
+    var msg=imported+' prices imported';
+    if(skipped)msg+=', '+skipped+' rows skipped';
+    if(errors.length)msg+='\n\nWarnings:\n'+errors.join('\n');
+    alert(msg);
+    document.getElementById('pasteTA').value='';
+    renderSection();
+  });
+  var clrBtn=btn('Clear','padding:9px 14px;background:none;border:1px solid var(--br);border-radius:8px;color:var(--dim);font-size:11px',function(){document.getElementById('pasteTA').value='';});
+  prow.appendChild(parseBtn);prow.appendChild(clrBtn);
+  var hint=div('font-size:10px;color:var(--dim)');hint.textContent='Commodity names matched automatically (fuzzy). Unknown names are skipped with a warning.';prow.appendChild(hint);
+  pastePanel.appendChild(prow);
+  d.appendChild(pastePanel);
+
+  // ── SECTION 2: Excel / CSV file upload ────────────────────────────────
+  var xlPanel=div('');xlPanel.className='panel';xlPanel.style.cssText='padding:20px;margin-bottom:14px';
+  xlPanel.innerHTML='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:18px">📊</span><span style="font-size:13px;font-weight:800;color:var(--tx);letter-spacing:1px">UPLOAD CSV OR EXCEL (.xlsx)</span></div>'
+    +'<div style="font-size:11px;color:var(--mid);margin-bottom:14px;line-height:1.7">'
+    +'Upload a .csv or .xlsx file. Same column format:<br>'
+    +'<code style="font-size:10px;color:var(--c);background:var(--c)10;padding:3px 8px;border-radius:4px;display:inline-block;margin-top:4px">Commodity, Origin, FOB USD/MT, Date, Notes</code>'
+    +'</div>';
+
+  // Drop zone
+  var dropZone=div('border:2px dashed var(--br);border-radius:12px;padding:30px;text-align:center;cursor:pointer;transition:border-color .2s;margin-bottom:14px');
+  dropZone.innerHTML='<div style="font-size:28px;margin-bottom:8px">📂</div><div style="font-size:12px;color:var(--mid)">Drop .csv or .xlsx here, or click to browse</div><div style="font-size:10px;color:var(--dim);margin-top:4px">File never leaves your browser</div>';
+  dropZone.id='dropZone';
+  dropZone.ondragover=function(e){e.preventDefault();this.style.borderColor='var(--c)';};
+  dropZone.ondragleave=function(){this.style.borderColor='var(--br)';};
+  dropZone.ondrop=function(e){e.preventDefault();this.style.borderColor='var(--br)';var f=e.dataTransfer.files[0];if(f)processFile(f);};
+  dropZone.onclick=function(){var fi=document.createElement('input');fi.type='file';fi.accept='.csv,.xlsx,.xls';fi.onchange=function(e){if(e.target.files[0])processFile(e.target.files[0]);};fi.click();};
+  xlPanel.appendChild(dropZone);
+
+  // Progress/result area
+  var fileResult=div('font-size:11px;color:var(--dim)');fileResult.id='fileResult';xlPanel.appendChild(fileResult);
+  d.appendChild(xlPanel);
+
+  // ── SECTION 3: Angola province prices paste ──────────────────────────
+  var provPanel=div('');provPanel.className='panel';provPanel.style.cssText='padding:20px;margin-bottom:14px';
+  provPanel.innerHTML='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:18px">🗺️</span><span style="font-size:13px;font-weight:800;color:var(--tx);letter-spacing:1px">ANGOLA PROVINCIAL PRICES — BULK PASTE</span></div>'
+    +'<div style="font-size:11px;color:var(--mid);margin-bottom:10px;line-height:1.7">'
+    +'Columns: <code style="font-size:10px;color:var(--c);background:var(--c)10;padding:2px 7px;border-radius:4px">Province | Commodity | Price AOA/kg | Date | Source</code>'
+    +'</div>';
+  var pta=el('textarea','width:100%;background:var(--panel);border:1px solid var(--br);border-radius:8px;padding:10px 12px;color:var(--tx);font-size:12px;font-family:var(--f);resize:vertical;height:110px');
+  pta.placeholder='Luanda\tWheat Flour\t24500\t2026-05-27\tMercado Roque\nBenguela\tRice\t18000\t2026-05-27\tMercado Central';
+  pta.id='provTA';
+  provPanel.appendChild(pta);
+  var provBtn=btn('⚡ Import Province Prices','padding:9px 20px;background:var(--c);color:var(--bg);border:none;border-radius:8px;font-size:11px;font-weight:800;margin-top:10px',function(){
+    var raw=document.getElementById('provTA').value.trim();
+    if(!raw){alert('Nothing pasted.');return;}
+    var lines=raw.split('\n').filter(function(l){return l.trim();});
+    var imported=0,skipped=0;
+    var COMM_MAP={'wheat flour':'wheat','wheat':'wheat','rice':'rice','sugar':'sugar','maize':'maize','corn':'maize','oil':'oil','sunflower':'oil','beans':'beans','soybean':'soybean','soy':'soybean','palm oil':'palmoil','palm':'palmoil','flour':'wheat'};
+    lines.forEach(function(line){
+      var sep=line.indexOf('\t')>=0?'\t':',';
+      var cols=line.split(sep).map(function(c){return c.trim();});
+      if(cols.length<3){skipped++;return;}
+      var prov=cols[0],commName=cols[1],price=parseFloat(cols[2]),date=cols[3]||new Date().toISOString().slice(0,10),source=cols[4]||'';
+      if(!prov||!commName||!price||isNaN(price)){skipped++;return;}
+      var key2=COMM_MAP[commName.toLowerCase()];
+      if(!key2){var cl=commName.toLowerCase();Object.keys(COMM_MAP).forEach(function(k){if(cl.indexOf(k)>=0)key2=COMM_MAP[k];});}
+      if(!key2){skipped++;return;}
+      var dk=prov+'__'+key2;
+      DB.angolaProvincePrices[dk]={price:price,date:date,source:source};
+      imported++;
+    });
+    saveDB();
+    alert(imported+' province prices imported'+(skipped?', '+skipped+' skipped':'')+'.');
+    document.getElementById('provTA').value='';
+    renderSection();
+  });
+  provPanel.appendChild(provBtn);
+  d.appendChild(provPanel);
+
+  // ── SECTION 4: Download template ────────────────────────────────────
+  var tplPanel=div('');tplPanel.className='panel';tplPanel.style.cssText='padding:20px;margin-bottom:14px';
+  tplPanel.innerHTML='<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><span style="font-size:18px">📥</span><span style="font-size:13px;font-weight:800;color:var(--tx);letter-spacing:1px">DOWNLOAD TEMPLATES</span></div>'
+    +'<div style="font-size:11px;color:var(--mid);margin-bottom:14px">Download pre-formatted CSV templates to fill in Excel/Google Sheets, then upload or paste back.</div>';
+  var tplBtns=div('display:flex;gap:10px;flex-wrap:wrap');
+  var tplFOB=btn('⬇ FOB Prices Template','padding:9px 18px;background:var(--panel);border:1px solid var(--c);border-radius:8px;color:var(--c);font-size:11px;font-weight:700',function(){
+    var csv='Commodity,Origin,FOB USD/MT,Date (YYYY-MM-DD),Notes/Source\n';
+    var COMM_DEFAULTS={wheat:'Black Sea',rice:'Thailand',sugar:'Brazil',maize:'Black Sea',oil:'Black Sea',beans:'Argentina',soybean:'Brazil',palmoil:'Rotterdam'};
+    ['Wheat Flour','Rice','Sugar','Maize','Sunflower Oil','Beans','Soybean','Palm Oil'].forEach(function(n,i){
+      var ids=['wheat','rice','sugar','maize','oil','beans','soybean','palmoil'];
+      csv+=n+','+COMM_DEFAULTS[ids[i]]+',0.00,'+new Date().toISOString().slice(0,10)+',\n';
+    });
+    var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='compass_fob_template.csv';a.click();
+  });
+  var tplProv=btn('⬇ Province Prices Template','padding:9px 18px;background:var(--panel);border:1px solid var(--c);border-radius:8px;color:var(--c);font-size:11px;font-weight:700',function(){
+    var csv='Province,Commodity,Price AOA/kg,Date (YYYY-MM-DD),Source\n';
+    var PROVS=['Luanda','Benguela','Huila','Namibe','Huambo'];
+    PROVS.forEach(function(p){['Wheat Flour','Rice','Sugar'].forEach(function(c){csv+=p+','+c+',0,'+new Date().toISOString().slice(0,10)+',\n';});});
+    var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='compass_province_prices_template.csv';a.click();
+  });
+  tplBtns.appendChild(tplFOB);tplBtns.appendChild(tplProv);tplPanel.appendChild(tplBtns);
+  d.appendChild(tplPanel);
+
+  // ── Current data summary ──────────────────────────────────────────────
+  var summPanel=div('');summPanel.className='panel';summPanel.style.cssText='padding:20px';
+  summPanel.innerHTML='<div style="font-size:9px;color:var(--dim);font-weight:700;letter-spacing:1.5px;margin-bottom:12px">CURRENT DATABASE SUMMARY</div>';
+  var tbl=document.createElement('table');
+  tbl.innerHTML='<thead><tr><th>Commodity</th><th>FOB (USD/MT)</th><th>Origin</th><th>Last Updated</th><th>History Points</th><th>Province Entries</th></tr></thead>';
+  var tb=document.createElement('tbody');
+  DEFAULT_COMMODITIES.forEach(function(c){
+    var cd=DB.commodities[c.id],hist=(DB.priceHistory[c.id]||[]).length;
+    var provCount=Object.keys(DB.angolaProvincePrices).filter(function(k){return k.indexOf('__'+c.id)>=0;}).length;
+    var fob=parseFloat(cd.fobUSD)||0;
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td style="font-weight:700">'+c.name+'</td>'
+      +'<td style="color:'+(fob>0?'var(--a)':'var(--dim)')+';font-weight:'+(fob>0?800:400)+'">'+(fob>0?'$'+fob.toFixed(2):'—')+'</td>'
+      +'<td style="color:var(--mid);font-size:11px">'+cd.origin+'</td>'
+      +'<td style="color:var(--dim);font-size:11px">'+(cd.date||'—')+'</td>'
+      +'<td style="color:var(--c);text-align:center">'+hist+'</td>'
+      +'<td style="color:var(--g);text-align:center">'+provCount+'</td>';
+    tb.appendChild(tr);
+  });
+  tbl.appendChild(tb);summPanel.appendChild(tbl);d.appendChild(summPanel);
+
+  return d;
+}
+
+// CSV file processor (no external library needed — CSV only; xlsx requires SheetJS)
+function processFile(file){
+  var res=document.getElementById('fileResult');
+  if(!res)return;
+  res.textContent='Reading '+file.name+'…';
+  if(file.name.match(/\.xlsx?$/i)){
+    // For xlsx: load SheetJS from CDN dynamically
+    res.textContent='Loading Excel parser…';
+    var script=document.createElement('script');
+    script.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    script.onload=function(){readXLSX(file,res);};
+    script.onerror=function(){res.innerHTML='<span style="color:var(--r)">Could not load Excel parser. Try saving your file as CSV first.</span>';};
+    document.head.appendChild(script);
+    return;
+  }
+  // Plain CSV
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var text=e.target.result;
+    processCSVText(text,res);
+  };
+  reader.readAsText(file);
+}
+
+function processCSVText(text,res){
+  var lines=text.split('\n').filter(function(l){return l.trim();});
+  // Skip header if it contains 'commodity' or 'province' etc
+  if(lines.length&&lines[0].toLowerCase().indexOf('commodity')>=0)lines.shift();
+  var ta=document.getElementById('pasteTA');
+  if(ta){ta.value=lines.join('\n');}
+  res.innerHTML='<span style="color:var(--g)">✓ '+lines.length+' rows loaded into paste area — click ⚡ Import to apply.</span>';
+}
+
+function readXLSX(file,res){
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+      var ws=wb.Sheets[wb.SheetNames[0]];
+      var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      // Skip header row
+      if(rows.length&&rows[0][0]&&rows[0][0].toString().toLowerCase().indexOf('commodity')>=0)rows.shift();
+      var csv=rows.map(function(r){return r.join('\t');}).join('\n');
+      processCSVText(csv,res);
+    }catch(err){
+      res.innerHTML='<span style="color:var(--r)">Error reading Excel file: '+err.message+'</span>';
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
 // SETTINGS
 function renderSettings(){
   var s=DB.settings;
@@ -893,7 +1116,7 @@ function openArticle(art){
 }
 
 // ── SIDEBAR ────────────────────────────────────────────────────────────────
-var NAV=[{k:'overview',e:'⬛',l:'Overview'},{k:'commodities',e:'📈',l:'Commodities'},{k:'landed',e:'📦',l:'Landed Cost'},{k:'copilot',e:'🧠',l:'Copilot AI',badge:'AI'},{k:'briefings',e:'📋',l:'Briefings'},{k:'news',e:'📰',l:'News'},{k:'settings',e:'⚙️',l:'Settings'}];
+var NAV=[{k:'overview',e:'⬛',l:'Overview'},{k:'commodities',e:'📈',l:'Commodities'},{k:'dataimport',e:'📥',l:'Data Import'},{k:'landed',e:'📦',l:'Landed Cost'},{k:'copilot',e:'🧠',l:'Copilot AI',badge:'AI'},{k:'briefings',e:'📋',l:'Briefings'},{k:'news',e:'📰',l:'News'},{k:'settings',e:'⚙️',l:'Settings'}];
 
 function buildSidebar(col){
   var sb=div('');sb.className='sbr'+(col?' col':'');
@@ -944,7 +1167,7 @@ function buildProvDD(parent){
 // ── Main render ────────────────────────────────────────────────────────────
 function renderSection(){
   var mc=document.getElementById('mc');if(!mc)return;mc.innerHTML='';
-  var fns={overview:renderOverview,commodities:renderCommodities,landed:renderLandedCost,copilot:renderCopilot,briefings:renderBriefings,news:renderNews,settings:renderSettings};
+  var fns={overview:renderOverview,commodities:renderCommodities,dataimport:renderDataImport,landed:renderLandedCost,copilot:renderCopilot,briefings:renderBriefings,news:renderNews,settings:renderSettings};
   var fn=fns[S.section];if(fn)mc.appendChild(fn());
 }
 
