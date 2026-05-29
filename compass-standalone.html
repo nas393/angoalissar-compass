@@ -806,208 +806,348 @@ async function genQuickBriefing(){var prompt='Generate a concise executive brief
 async function genDevil(){var toneMap={mild:'gentle but honest',moderate:'direct and critical',brutal:'brutally honest, no filters'};var prompt="Devil's Advocate ("+toneMap[S.copilotTone]+'): Challenge Angoalissar\'s current commercial strategy. Scope: '+(S.province||'All Angola')+'. Identify blind spots, risks being ignored, poor decisions. Be '+(S.copilotTone)+'.';await sendMsg(prompt);}
 
 // DATA IMPORT
+// ── helpers ────────────────────────────────────────────────────────────────
+var COMM_MAP_IMPORT={'wheat flour':'wheat','wheat':'wheat','rice':'rice','sugar':'sugar','maize':'maize','corn':'maize','oil':'oil','sunflower':'oil','sunflower oil':'oil','beans':'beans','soybean':'soybean','soy':'soybean','palm oil':'palmoil','palm':'palmoil','flour':'wheat'};
+
+function resolveComm(name){
+  var k=COMM_MAP_IMPORT[name.toLowerCase().trim()];
+  if(k)return k;
+  var l=name.toLowerCase();
+  var found=null;
+  Object.keys(COMM_MAP_IMPORT).forEach(function(mk){if(l.indexOf(mk)>=0&&!found)found=COMM_MAP_IMPORT[mk];});
+  return found;
+}
+
+// Safe download using data: URI (works in iframes/artifacts)
+function safeDownload(filename, content, mime){
+  mime = mime||'text/csv';
+  var uri = 'data:'+mime+';charset=utf-8,'+encodeURIComponent(content);
+  var a = document.createElement('a');
+  a.href = uri; a.download = filename; a.style.display='none';
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){document.body.removeChild(a);},200);
+}
+
+function importCSVLines(lines){
+  var imported=0,skipped=0,errors=[];
+  lines.forEach(function(line){
+    var sep=line.indexOf('\t')>=0?'\t':',';
+    var cols=line.split(sep).map(function(c){return c.replace(/^"|"$/g,'').trim();});
+    if(cols.length<3)return skipped++;
+    var commName=cols[0],origin=cols[1],fobRaw=cols[2],date=cols[3]||new Date().toISOString().slice(0,10),notes=cols[4]||'';
+    var fob=parseFloat(fobRaw.replace(/[^0-9.-]/g,''));
+    if(!fob||isNaN(fob)||fob<=0)return skipped++;
+    var key=resolveComm(commName);
+    if(!key){errors.push('"'+commName+'"');return skipped++;}
+    DB.commodities[key].fobUSD=fob;
+    if(origin&&origin!=='0')DB.commodities[key].origin=origin;
+    DB.commodities[key].date=date;
+    if(notes)DB.commodities[key].notes=notes;
+    DB.priceHistory[key]=DB.priceHistory[key]||[];
+    DB.priceHistory[key].push({date:date,price:fob});
+    if(DB.priceHistory[key].length>90)DB.priceHistory[key].shift();
+    imported++;
+  });
+  saveDB();
+  return {imported:imported,skipped:skipped,errors:errors};
+}
+
+function importProvLines(lines){
+  var imported=0,skipped=0;
+  lines.forEach(function(line){
+    var sep=line.indexOf('\t')>=0?'\t':',';
+    var cols=line.split(sep).map(function(c){return c.replace(/^"|"$/g,'').trim();});
+    if(cols.length<3)return skipped++;
+    var prov=cols[0],commName=cols[1],price=parseFloat(cols[2].replace(/[^0-9.-]/g,'')),date=cols[3]||new Date().toISOString().slice(0,10),source=cols[4]||'';
+    if(!prov||!commName||!price||isNaN(price)||price<=0)return skipped++;
+    var key2=resolveComm(commName);
+    if(!key2)return skipped++;
+    var dk=prov+'__'+key2;
+    DB.angolaProvincePrices[dk]={price:price,date:date,source:source};
+    imported++;
+  });
+  saveDB();
+  return {imported:imported,skipped:skipped};
+}
+
+// ── World reference prices (Bloomberg/CME equivalents) ─────────────────
+// User sets price + unit; app converts everything to USD/MT
+var UNIT_OPTIONS=[
+  {k:'usd_mt',   label:'USD / MT (metric ton)'},
+  {k:'usd_bu_wheat', label:'USD / Bushel (Wheat)  → ×36.744'},
+  {k:'usd_bu_corn',  label:'USD / Bushel (Corn)   → ×39.368'},
+  {k:'usd_bu_soy',   label:'USD / Bushel (Soybean)→ ×36.744'},
+  {k:'usd_cwt',  label:'USD / CWT (hundredweight) → ×22.046'},
+  {k:'usd_kg',   label:'USD / kg → ×1000'},
+  {k:'usd_lb',   label:'USD / lb → ×2204.6'},
+  {k:'usd_bag50',label:'USD / 50kg bag → ×20'},
+];
+var UNIT_MULT={'usd_mt':1,'usd_bu_wheat':36.744,'usd_bu_corn':39.368,'usd_bu_soy':36.744,'usd_cwt':22.046,'usd_kg':1000,'usd_lb':2204.6,'usd_bag50':20};
+
+function toUSDperMT(price,unitKey){
+  return (parseFloat(price)||0) * (UNIT_MULT[unitKey]||1);
+}
+
 function renderDataImport(){
-  var d=div('');d.className='fade';
-  d.appendChild(secHead('Data Import','Feed prices and records via Excel, CSV or copy-paste. Nothing sent to any server.',null));
+  var d=div(''); d.className='fade';
+  d.appendChild(secHead('Data Import','Feed prices via copy-paste, Excel/CSV upload, or enter world reference prices with unit conversion.',null));
 
-  // ── SECTION 1: Copy-paste bulk price entry ────────────────────────────
-  var pastePanel=div('');pastePanel.className='panel';pastePanel.style.cssText='padding:20px;margin-bottom:14px';
-  pastePanel.innerHTML='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:18px">📋</span><span style="font-size:13px;font-weight:800;color:var(--tx);letter-spacing:1px">COPY-PASTE FROM EXCEL / SPREADSHEET</span></div>'
-    +'<div style="font-size:11px;color:var(--mid);margin-bottom:14px;line-height:1.7">'
-    +'Copy cells from any spreadsheet and paste below. Expected columns (tab or comma separated):<br>'
-    +'<code style="font-size:10px;color:var(--c);background:var(--c)10;padding:3px 8px;border-radius:4px;display:inline-block;margin-top:4px">Commodity | Origin | FOB USD/MT | Date (YYYY-MM-DD) | Notes</code><br>'
-    +'<span style="font-size:10px;color:var(--dim);margin-top:4px;display:block">Example: Wheat Flour&nbsp;&nbsp;Black Sea&nbsp;&nbsp;245.50&nbsp;&nbsp;2026-05-27&nbsp;&nbsp;Bloomberg CBOT</span>'
-    +'</div>';
+  // ── WORLD FOB REFERENCE PRICES ────────────────────────────────────────
+  var refPanel=div(''); refPanel.className='panel'; refPanel.style.cssText='padding:20px;margin-bottom:14px;border:1px solid var(--brh)';
+  var rfHead=div('display:flex;align-items:center;gap:8px;margin-bottom:14px');
+  rfHead.innerHTML='<span style="font-size:18px">🌍</span><div><div style="font-size:13px;font-weight:800;color:var(--tx);letter-spacing:1px">WORLD FOB REFERENCE PRICES</div><div style="font-size:10px;color:var(--dim);margin-top:2px">Enter price in any unit — app converts everything to USD/MT automatically</div></div>';
+  refPanel.appendChild(rfHead);
 
-  var ta=el('textarea','width:100%;background:var(--panel);border:1px solid var(--br);border-radius:8px;padding:10px 12px;color:var(--tx);font-size:12px;font-family:var(--f);resize:vertical;height:140px;line-height:1.6');
-  ta.placeholder='Paste your data here…\n\nWheat Flour\tBlack Sea\t245.50\t2026-05-27\tBloomberg\nRice\tThailand\t418.00\t2026-05-27\tS&P Global\nSugar\tBrazil\t521.00\t2026-05-27\tCME';
-  ta.id='pasteTA';
-  pastePanel.appendChild(ta);
+  // Reference source links
+  var srcRow=div('display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px');
+  [{name:'Bloomberg Commodities',url:'https://www.bloomberg.com/markets/commodities'},
+   {name:'CME/CBOT',url:'https://www.cmegroup.com/markets/agriculture.html'},
+   {name:'S&P Global Platts',url:'https://www.spglobal.com/commodityinsights'},
+   {name:'FAO Price Index',url:'https://www.fao.org/worldfoodsituation/foodpricesindex/en/'},
+   {name:'World Bank Markets',url:'https://www.worldbank.org/en/research/commodity-markets'},
+  ].forEach(function(r){
+    var a=document.createElement('a'); a.href=r.url; a.target='_blank';
+    a.style.cssText='font-size:10px;color:var(--c);text-decoration:none;padding:3px 8px;border:1px solid var(--c)30;border-radius:6px;background:var(--c)08';
+    a.textContent='🔗 '+r.name; srcRow.appendChild(a);
+  });
+  refPanel.appendChild(srcRow);
 
-  var prow=div('display:flex;gap:10px;margin-top:10px;align-items:center;flex-wrap:wrap');
-  var parseBtn=btn('⚡ Import Pasted Data','padding:9px 20px;background:var(--c);color:var(--bg);border:none;border-radius:8px;font-size:11px;font-weight:800',function(){
-    var raw=document.getElementById('pasteTA').value.trim();
-    if(!raw){alert('Nothing pasted yet.');return;}
-    var lines=raw.split('\n').filter(function(l){return l.trim();});
-    var imported=0,skipped=0,errors=[];
-    lines.forEach(function(line){
-      // Support tab-separated or comma-separated
-      var sep=line.indexOf('\t')>=0?'\t':',';
-      var cols=line.split(sep).map(function(c){return c.trim();});
-      if(cols.length<3){skipped++;return;}
-      var commName=cols[0], origin=cols[1], fobRaw=cols[2], date=cols[3]||new Date().toISOString().slice(0,10), notes=cols[4]||'';
-      var fob=parseFloat(fobRaw.replace(/[^0-9.]/g,''));
-      if(!fob||isNaN(fob)){skipped++;return;}
-      // Match commodity name (fuzzy)
-      var COMM_MAP={'wheat flour':'wheat','wheat':'wheat','rice':'rice','sugar':'sugar','maize':'maize','corn':'maize','oil':'oil','sunflower':'oil','beans':'beans','soybean':'soybean','soy':'soybean','palm oil':'palmoil','palm':'palmoil'};
-      var key=COMM_MAP[commName.toLowerCase().trim()];
-      if(!key){
-        // Try partial match
-        var commLower=commName.toLowerCase();
-        Object.keys(COMM_MAP).forEach(function(k){if(commLower.indexOf(k)>=0)key=COMM_MAP[k];});
+  // Per-commodity entry rows
+  var rtbl=document.createElement('table');
+  rtbl.innerHTML='<thead><tr><th>Commodity</th><th>Typical Exchange</th><th>Price (any unit)</th><th>Unit</th><th>= USD/MT</th><th>Origin</th><th>Date</th></tr></thead>';
+  var rtb=document.createElement('tbody');
+  var EXCHANGES={wheat:'CBOT / Black Sea',rice:'Thai FOB / Chicago',sugar:'ICE No.11 / Brazil',maize:'CBOT / Black Sea',oil:'Black Sea / Rotterdam',beans:'CBOT',soybean:'CBOT / BOVESPA',palmoil:'BMD / Rotterdam'};
+
+  DEFAULT_COMMODITIES.forEach(function(c){
+    var cd=DB.commodities[c.id];
+    var storedUnit=DB.refPriceUnits&&DB.refPriceUnits[c.id]?DB.refPriceUnits[c.id]:'usd_mt';
+    var storedRaw=DB.refPriceRaw&&DB.refPriceRaw[c.id]?DB.refPriceRaw[c.id]:'';
+    var fob=parseFloat(cd.fobUSD)||0;
+
+    var tr=document.createElement('tr'); tr.id='refrow_'+c.id;
+    // Commodity name
+    var td0=document.createElement('td'); td0.style.fontWeight='700'; td0.textContent=c.name; tr.appendChild(td0);
+    // Exchange hint
+    var td1=document.createElement('td'); td1.style.cssText='font-size:10px;color:var(--dim)'; td1.textContent=EXCHANGES[c.id]||''; tr.appendChild(td1);
+    // Raw price input
+    var td2=document.createElement('td');
+    var priceInp=document.createElement('input'); priceInp.type='number'; priceInp.step='0.01'; priceInp.id='ref_price_'+c.id;
+    priceInp.value=storedRaw||'';
+    priceInp.style.cssText='width:90px;background:var(--panel);border:1px solid var(--brh);border-radius:6px;padding:5px 8px;color:var(--a);font-size:13px;font-weight:800;font-family:var(--f)';
+    priceInp.placeholder='0.00';
+    priceInp.oninput=function(){ updateRefRow(c.id); };
+    td2.appendChild(priceInp); tr.appendChild(td2);
+    // Unit selector
+    var td3=document.createElement('td');
+    var unitSel=document.createElement('select'); unitSel.id='ref_unit_'+c.id;
+    unitSel.style.cssText='background:var(--panel);border:1px solid var(--br);border-radius:6px;padding:5px 7px;color:var(--tx);font-size:10px;font-family:var(--f)';
+    UNIT_OPTIONS.forEach(function(u){
+      var o=document.createElement('option'); o.value=u.k; o.textContent=u.label;
+      if(storedUnit===u.k)o.selected=true; unitSel.appendChild(o);
+    });
+    unitSel.onchange=function(){ updateRefRow(c.id); };
+    td3.appendChild(unitSel); tr.appendChild(td3);
+    // Converted USD/MT (live)
+    var td4=document.createElement('td'); td4.id='ref_conv_'+c.id;
+    var converted=storedRaw?toUSDperMT(storedRaw,storedUnit):fob;
+    td4.style.cssText='color:var(--c);font-weight:800;font-size:13px';
+    td4.textContent=converted>0?'$'+converted.toFixed(2):'—';
+    tr.appendChild(td4);
+    // Origin
+    var td5=document.createElement('td');
+    var originInp=document.createElement('input'); originInp.type='text'; originInp.id='ref_origin_'+c.id;
+    originInp.value=cd.origin||''; originInp.placeholder='e.g. Black Sea';
+    originInp.style.cssText='width:100px;background:var(--panel);border:1px solid var(--br);border-radius:6px;padding:5px 7px;color:var(--tx);font-size:11px;font-family:var(--f)';
+    td5.appendChild(originInp); tr.appendChild(td5);
+    // Date
+    var td6=document.createElement('td');
+    var dateInp2=document.createElement('input'); dateInp2.type='date'; dateInp2.id='ref_date_'+c.id;
+    dateInp2.value=cd.date||new Date().toISOString().slice(0,10);
+    dateInp2.style.cssText='background:var(--panel);border:1px solid var(--br);border-radius:6px;padding:5px 7px;color:var(--tx);font-size:11px;font-family:var(--f)';
+    td6.appendChild(dateInp2); tr.appendChild(td6);
+    rtb.appendChild(tr);
+  });
+  rtbl.appendChild(rtb); refPanel.appendChild(rtbl);
+
+  // Save all reference prices button
+  var saveRefBtn=btn('💾 Save All Reference Prices to Database','padding:10px 24px;background:var(--c);color:var(--bg);border:none;border-radius:8px;font-size:11px;font-weight:800;margin-top:14px;display:block',function(){
+    if(!DB.refPriceUnits)DB.refPriceUnits={};
+    if(!DB.refPriceRaw)DB.refPriceRaw={};
+    DEFAULT_COMMODITIES.forEach(function(c){
+      var rawEl=document.getElementById('ref_price_'+c.id);
+      var unitEl=document.getElementById('ref_unit_'+c.id);
+      var origEl=document.getElementById('ref_origin_'+c.id);
+      var dateEl=document.getElementById('ref_date_'+c.id);
+      if(!rawEl)return;
+      var raw=parseFloat(rawEl.value)||0;
+      var unit=unitEl?unitEl.value:'usd_mt';
+      var fobFinal=toUSDperMT(raw,unit);
+      DB.refPriceRaw[c.id]=rawEl.value;
+      DB.refPriceUnits[c.id]=unit;
+      if(fobFinal>0){
+        DB.commodities[c.id].fobUSD=fobFinal;
+        if(origEl&&origEl.value)DB.commodities[c.id].origin=origEl.value;
+        if(dateEl&&dateEl.value)DB.commodities[c.id].date=dateEl.value;
+        DB.priceHistory[c.id]=DB.priceHistory[c.id]||[];
+        DB.priceHistory[c.id].push({date:dateEl?dateEl.value:new Date().toISOString().slice(0,10),price:fobFinal});
+        if(DB.priceHistory[c.id].length>90)DB.priceHistory[c.id].shift();
       }
-      if(!key){errors.push('Unknown commodity: "'+commName+'"');skipped++;return;}
-      DB.commodities[key].fobUSD=fob;
-      DB.commodities[key].origin=origin||DB.commodities[key].origin;
-      DB.commodities[key].date=date;
-      if(notes)DB.commodities[key].notes=notes;
-      // Add to history
-      DB.priceHistory[key]=DB.priceHistory[key]||[];
-      DB.priceHistory[key].push({date:date,price:fob});
-      if(DB.priceHistory[key].length>90)DB.priceHistory[key].shift();
-      imported++;
     });
     saveDB();
-    var msg=imported+' prices imported';
-    if(skipped)msg+=', '+skipped+' rows skipped';
-    if(errors.length)msg+='\n\nWarnings:\n'+errors.join('\n');
-    alert(msg);
-    document.getElementById('pasteTA').value='';
+    alert('All reference prices saved to database.');
     renderSection();
   });
-  var clrBtn=btn('Clear','padding:9px 14px;background:none;border:1px solid var(--br);border-radius:8px;color:var(--dim);font-size:11px',function(){document.getElementById('pasteTA').value='';});
-  prow.appendChild(parseBtn);prow.appendChild(clrBtn);
-  var hint=div('font-size:10px;color:var(--dim)');hint.textContent='Commodity names matched automatically (fuzzy). Unknown names are skipped with a warning.';prow.appendChild(hint);
+  refPanel.appendChild(saveRefBtn);
+  d.appendChild(refPanel);
+
+  // ── COPY-PASTE ─────────────────────────────────────────────────────────
+  var pastePanel=div(''); pastePanel.className='panel'; pastePanel.style.cssText='padding:20px;margin-bottom:14px';
+  pastePanel.innerHTML='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:18px">📋</span><span style="font-size:13px;font-weight:800;color:var(--tx);letter-spacing:1px">COPY-PASTE FROM EXCEL / SPREADSHEET</span></div>'
+    +'<div style="font-size:11px;color:var(--mid);margin-bottom:12px;line-height:1.7">'
+    +'Select cells in Excel/Google Sheets → Ctrl+C → click below → Ctrl+V<br>'
+    +'Columns: <code style="font-size:10px;color:var(--c);background:var(--c)10;padding:2px 7px;border-radius:4px">Commodity | Origin | FOB USD/MT | Date | Notes</code>'
+    +'</div>';
+  var ta=document.createElement('textarea');
+  ta.id='pasteTA'; ta.style.cssText='width:100%;background:var(--panel);border:1px solid var(--br);border-radius:8px;padding:10px 12px;color:var(--tx);font-size:12px;font-family:var(--f);resize:vertical;height:130px;line-height:1.6';
+  ta.placeholder='Paste here…\n\nWheat Flour\tBlack Sea\t245.50\t2026-05-27\tBloomberg CBOT\nRice\tThailand\t418.00\t2026-05-27\tS&P Global';
+  pastePanel.appendChild(ta);
+  var prow=div('display:flex;gap:10px;margin-top:10px;align-items:center;flex-wrap:wrap');
+  var parseBtn=btn('⚡ Import Pasted Data','padding:9px 20px;background:var(--c);color:var(--bg);border:none;border-radius:8px;font-size:11px;font-weight:800',function(){
+    var raw=ta.value.trim();
+    if(!raw){alert('Nothing pasted yet.');return;}
+    var lines=raw.split('\n').filter(function(l){return l.trim();});
+    if(lines[0]&&lines[0].toLowerCase().indexOf('commodity')>=0)lines.shift();
+    var res=importCSVLines(lines);
+    var msg=res.imported+' commodities imported';
+    if(res.skipped)msg+=', '+res.skipped+' rows skipped';
+    if(res.errors.length)msg+='\n\nUnknown commodities:\n'+res.errors.join(', ');
+    alert(msg); ta.value=''; renderSection();
+  });
+  var clrBtn=btn('Clear','padding:9px 14px;background:none;border:1px solid var(--br);border-radius:8px;color:var(--dim);font-size:11px',function(){ta.value='';});
+  prow.appendChild(parseBtn); prow.appendChild(clrBtn);
   pastePanel.appendChild(prow);
   d.appendChild(pastePanel);
 
-  // ── SECTION 2: Excel / CSV file upload ────────────────────────────────
-  var xlPanel=div('');xlPanel.className='panel';xlPanel.style.cssText='padding:20px;margin-bottom:14px';
+  // ── FILE UPLOAD ─────────────────────────────────────────────────────────
+  var xlPanel=div(''); xlPanel.className='panel'; xlPanel.style.cssText='padding:20px;margin-bottom:14px';
   xlPanel.innerHTML='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:18px">📊</span><span style="font-size:13px;font-weight:800;color:var(--tx);letter-spacing:1px">UPLOAD CSV OR EXCEL (.xlsx)</span></div>'
-    +'<div style="font-size:11px;color:var(--mid);margin-bottom:14px;line-height:1.7">'
-    +'Upload a .csv or .xlsx file. Same column format:<br>'
-    +'<code style="font-size:10px;color:var(--c);background:var(--c)10;padding:3px 8px;border-radius:4px;display:inline-block;margin-top:4px">Commodity, Origin, FOB USD/MT, Date, Notes</code>'
-    +'</div>';
-
-  // Drop zone
-  var dropZone=div('border:2px dashed var(--br);border-radius:12px;padding:30px;text-align:center;cursor:pointer;transition:border-color .2s;margin-bottom:14px');
-  dropZone.innerHTML='<div style="font-size:28px;margin-bottom:8px">📂</div><div style="font-size:12px;color:var(--mid)">Drop .csv or .xlsx here, or click to browse</div><div style="font-size:10px;color:var(--dim);margin-top:4px">File never leaves your browser</div>';
-  dropZone.id='dropZone';
+    +'<div style="font-size:11px;color:var(--mid);margin-bottom:12px">Same columns as above. File never leaves your browser.</div>';
+  var dropZone=div('border:2px dashed var(--br);border-radius:12px;padding:28px;text-align:center;cursor:pointer;transition:border-color .2s;margin-bottom:10px');
+  dropZone.innerHTML='<div style="font-size:28px;margin-bottom:6px">📂</div><div style="font-size:12px;color:var(--mid)">Drop .csv or .xlsx here, or <span style="color:var(--c);text-decoration:underline">click to browse</span></div><div style="font-size:10px;color:var(--dim);margin-top:3px">Parsed entirely in your browser</div>';
   dropZone.ondragover=function(e){e.preventDefault();this.style.borderColor='var(--c)';};
   dropZone.ondragleave=function(){this.style.borderColor='var(--br)';};
-  dropZone.ondrop=function(e){e.preventDefault();this.style.borderColor='var(--br)';var f=e.dataTransfer.files[0];if(f)processFile(f);};
+  dropZone.ondrop=function(e){e.preventDefault();this.style.borderColor='var(--br)';if(e.dataTransfer.files[0])processFile(e.dataTransfer.files[0]);};
   dropZone.onclick=function(){var fi=document.createElement('input');fi.type='file';fi.accept='.csv,.xlsx,.xls';fi.onchange=function(e){if(e.target.files[0])processFile(e.target.files[0]);};fi.click();};
   xlPanel.appendChild(dropZone);
-
-  // Progress/result area
   var fileResult=div('font-size:11px;color:var(--dim)');fileResult.id='fileResult';xlPanel.appendChild(fileResult);
   d.appendChild(xlPanel);
 
-  // ── SECTION 3: Angola province prices paste ──────────────────────────
-  var provPanel=div('');provPanel.className='panel';provPanel.style.cssText='padding:20px;margin-bottom:14px';
-  provPanel.innerHTML='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:18px">🗺️</span><span style="font-size:13px;font-weight:800;color:var(--tx);letter-spacing:1px">ANGOLA PROVINCIAL PRICES — BULK PASTE</span></div>'
-    +'<div style="font-size:11px;color:var(--mid);margin-bottom:10px;line-height:1.7">'
-    +'Columns: <code style="font-size:10px;color:var(--c);background:var(--c)10;padding:2px 7px;border-radius:4px">Province | Commodity | Price AOA/kg | Date | Source</code>'
-    +'</div>';
-  var pta=el('textarea','width:100%;background:var(--panel);border:1px solid var(--br);border-radius:8px;padding:10px 12px;color:var(--tx);font-size:12px;font-family:var(--f);resize:vertical;height:110px');
+  // ── PROVINCE PRICES PASTE ──────────────────────────────────────────────
+  var provPanel=div(''); provPanel.className='panel'; provPanel.style.cssText='padding:20px;margin-bottom:14px';
+  provPanel.innerHTML='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:18px">🗺️</span><span style="font-size:13px;font-weight:800;color:var(--tx);letter-spacing:1px">ANGOLA PROVINCE PRICES — BULK PASTE</span></div>'
+    +'<div style="font-size:11px;color:var(--mid);margin-bottom:10px">Columns: <code style="font-size:10px;color:var(--c);background:var(--c)10;padding:2px 7px;border-radius:4px">Province | Commodity | Price AOA/kg | Date | Source</code></div>';
+  var pta=document.createElement('textarea');
+  pta.id='provTA'; pta.style.cssText='width:100%;background:var(--panel);border:1px solid var(--br);border-radius:8px;padding:10px 12px;color:var(--tx);font-size:12px;font-family:var(--f);resize:vertical;height:100px';
   pta.placeholder='Luanda\tWheat Flour\t24500\t2026-05-27\tMercado Roque\nBenguela\tRice\t18000\t2026-05-27\tMercado Central';
-  pta.id='provTA';
   provPanel.appendChild(pta);
-  var provBtn=btn('⚡ Import Province Prices','padding:9px 20px;background:var(--c);color:var(--bg);border:none;border-radius:8px;font-size:11px;font-weight:800;margin-top:10px',function(){
-    var raw=document.getElementById('provTA').value.trim();
-    if(!raw){alert('Nothing pasted.');return;}
+  var provImportBtn=btn('⚡ Import Province Prices','padding:9px 20px;background:var(--c);color:var(--bg);border:none;border-radius:8px;font-size:11px;font-weight:800;margin-top:10px;display:inline-block',function(){
+    var raw=pta.value.trim(); if(!raw){alert('Nothing pasted.');return;}
     var lines=raw.split('\n').filter(function(l){return l.trim();});
-    var imported=0,skipped=0;
-    var COMM_MAP={'wheat flour':'wheat','wheat':'wheat','rice':'rice','sugar':'sugar','maize':'maize','corn':'maize','oil':'oil','sunflower':'oil','beans':'beans','soybean':'soybean','soy':'soybean','palm oil':'palmoil','palm':'palmoil','flour':'wheat'};
-    lines.forEach(function(line){
-      var sep=line.indexOf('\t')>=0?'\t':',';
-      var cols=line.split(sep).map(function(c){return c.trim();});
-      if(cols.length<3){skipped++;return;}
-      var prov=cols[0],commName=cols[1],price=parseFloat(cols[2]),date=cols[3]||new Date().toISOString().slice(0,10),source=cols[4]||'';
-      if(!prov||!commName||!price||isNaN(price)){skipped++;return;}
-      var key2=COMM_MAP[commName.toLowerCase()];
-      if(!key2){var cl=commName.toLowerCase();Object.keys(COMM_MAP).forEach(function(k){if(cl.indexOf(k)>=0)key2=COMM_MAP[k];});}
-      if(!key2){skipped++;return;}
-      var dk=prov+'__'+key2;
-      DB.angolaProvincePrices[dk]={price:price,date:date,source:source};
-      imported++;
-    });
-    saveDB();
-    alert(imported+' province prices imported'+(skipped?', '+skipped+' skipped':'')+'.');
-    document.getElementById('provTA').value='';
-    renderSection();
+    if(lines[0]&&lines[0].toLowerCase().indexOf('province')>=0)lines.shift();
+    var res=importProvLines(lines);
+    alert(res.imported+' province prices imported'+(res.skipped?', '+res.skipped+' skipped':'')+'.'); pta.value=''; renderSection();
   });
-  provPanel.appendChild(provBtn);
+  provPanel.appendChild(provImportBtn);
   d.appendChild(provPanel);
 
-  // ── SECTION 4: Download template ────────────────────────────────────
-  var tplPanel=div('');tplPanel.className='panel';tplPanel.style.cssText='padding:20px;margin-bottom:14px';
+  // ── DOWNLOAD TEMPLATES ─────────────────────────────────────────────────
+  var tplPanel=div(''); tplPanel.className='panel'; tplPanel.style.cssText='padding:20px;margin-bottom:14px';
   tplPanel.innerHTML='<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><span style="font-size:18px">📥</span><span style="font-size:13px;font-weight:800;color:var(--tx);letter-spacing:1px">DOWNLOAD TEMPLATES</span></div>'
-    +'<div style="font-size:11px;color:var(--mid);margin-bottom:14px">Download pre-formatted CSV templates to fill in Excel/Google Sheets, then upload or paste back.</div>';
+    +'<div style="font-size:11px;color:var(--mid);margin-bottom:14px">Pre-formatted CSV — open in Excel or Google Sheets, fill in, upload or paste back.</div>';
   var tplBtns=div('display:flex;gap:10px;flex-wrap:wrap');
+
   var tplFOB=btn('⬇ FOB Prices Template','padding:9px 18px;background:var(--panel);border:1px solid var(--c);border-radius:8px;color:var(--c);font-size:11px;font-weight:700',function(){
     var csv='Commodity,Origin,FOB USD/MT,Date (YYYY-MM-DD),Notes/Source\n';
-    var COMM_DEFAULTS={wheat:'Black Sea',rice:'Thailand',sugar:'Brazil',maize:'Black Sea',oil:'Black Sea',beans:'Argentina',soybean:'Brazil',palmoil:'Rotterdam'};
-    ['Wheat Flour','Rice','Sugar','Maize','Sunflower Oil','Beans','Soybean','Palm Oil'].forEach(function(n,i){
-      var ids=['wheat','rice','sugar','maize','oil','beans','soybean','palmoil'];
-      csv+=n+','+COMM_DEFAULTS[ids[i]]+',0.00,'+new Date().toISOString().slice(0,10)+',\n';
-    });
-    var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='compass_fob_template.csv';a.click();
+    var defs={wheat:'Black Sea',rice:'Thailand',sugar:'Brazil',maize:'Black Sea',oil:'Black Sea',beans:'Argentina',soybean:'Brazil',palmoil:'Rotterdam'};
+    var names=['Wheat Flour','Rice','Sugar','Maize','Sunflower Oil','Beans','Soybean','Palm Oil'];
+    var ids=['wheat','rice','sugar','maize','oil','beans','soybean','palmoil'];
+    names.forEach(function(n,i){csv+=n+','+defs[ids[i]]+',0.00,'+new Date().toISOString().slice(0,10)+',\n';});
+    safeDownload('compass_fob_template.csv', csv);
   });
+
   var tplProv=btn('⬇ Province Prices Template','padding:9px 18px;background:var(--panel);border:1px solid var(--c);border-radius:8px;color:var(--c);font-size:11px;font-weight:700',function(){
     var csv='Province,Commodity,Price AOA/kg,Date (YYYY-MM-DD),Source\n';
-    var PROVS=['Luanda','Benguela','Huila','Namibe','Huambo'];
-    PROVS.forEach(function(p){['Wheat Flour','Rice','Sugar'].forEach(function(c){csv+=p+','+c+',0,'+new Date().toISOString().slice(0,10)+',\n';});});
-    var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='compass_province_prices_template.csv';a.click();
+    ['Luanda','Benguela','Huila','Namibe','Huambo'].forEach(function(p){
+      ['Wheat Flour','Rice','Sugar','Maize'].forEach(function(c){csv+=p+','+c+',0,'+new Date().toISOString().slice(0,10)+',\n';});
+    });
+    safeDownload('compass_province_prices_template.csv', csv);
   });
-  tplBtns.appendChild(tplFOB);tplBtns.appendChild(tplProv);tplPanel.appendChild(tplBtns);
-  d.appendChild(tplPanel);
 
-  // ── Current data summary ──────────────────────────────────────────────
-  var summPanel=div('');summPanel.className='panel';summPanel.style.cssText='padding:20px';
-  summPanel.innerHTML='<div style="font-size:9px;color:var(--dim);font-weight:700;letter-spacing:1.5px;margin-bottom:12px">CURRENT DATABASE SUMMARY</div>';
-  var tbl=document.createElement('table');
-  tbl.innerHTML='<thead><tr><th>Commodity</th><th>FOB (USD/MT)</th><th>Origin</th><th>Last Updated</th><th>History Points</th><th>Province Entries</th></tr></thead>';
-  var tb=document.createElement('tbody');
+  tplBtns.appendChild(tplFOB); tplBtns.appendChild(tplProv);
+  tplPanel.appendChild(tplBtns); d.appendChild(tplPanel);
+
+  // ── DATABASE SUMMARY ───────────────────────────────────────────────────
+  var summPanel=div(''); summPanel.className='panel'; summPanel.style.cssText='padding:20px';
+  summPanel.innerHTML='<div style="font-size:9px;color:var(--dim);font-weight:700;letter-spacing:1.5px;margin-bottom:12px">CURRENT DATABASE SNAPSHOT</div>';
+  var stbl=document.createElement('table');
+  stbl.innerHTML='<thead><tr><th>Commodity</th><th>FOB USD/MT</th><th>Origin</th><th>Date</th><th>History</th><th>Province Entries</th></tr></thead>';
+  var stb=document.createElement('tbody');
   DEFAULT_COMMODITIES.forEach(function(c){
     var cd=DB.commodities[c.id],hist=(DB.priceHistory[c.id]||[]).length;
     var provCount=Object.keys(DB.angolaProvincePrices).filter(function(k){return k.indexOf('__'+c.id)>=0;}).length;
     var fob=parseFloat(cd.fobUSD)||0;
-    var tr=document.createElement('tr');
-    tr.innerHTML='<td style="font-weight:700">'+c.name+'</td>'
+    var tr2=document.createElement('tr');
+    tr2.innerHTML='<td style="font-weight:700">'+c.name+'</td>'
       +'<td style="color:'+(fob>0?'var(--a)':'var(--dim)')+';font-weight:'+(fob>0?800:400)+'">'+(fob>0?'$'+fob.toFixed(2):'—')+'</td>'
       +'<td style="color:var(--mid);font-size:11px">'+cd.origin+'</td>'
       +'<td style="color:var(--dim);font-size:11px">'+(cd.date||'—')+'</td>'
       +'<td style="color:var(--c);text-align:center">'+hist+'</td>'
       +'<td style="color:var(--g);text-align:center">'+provCount+'</td>';
-    tb.appendChild(tr);
+    stb.appendChild(tr2);
   });
-  tbl.appendChild(tb);summPanel.appendChild(tbl);d.appendChild(summPanel);
-
+  stbl.appendChild(stb); summPanel.appendChild(stbl); d.appendChild(summPanel);
   return d;
 }
 
-// CSV file processor (no external library needed — CSV only; xlsx requires SheetJS)
+// Live update of converted USD/MT cell in reference table
+function updateRefRow(commId){
+  var rawEl=document.getElementById('ref_price_'+commId);
+  var unitEl=document.getElementById('ref_unit_'+commId);
+  var convEl=document.getElementById('ref_conv_'+commId);
+  if(!rawEl||!unitEl||!convEl)return;
+  var converted=toUSDperMT(rawEl.value, unitEl.value);
+  convEl.textContent=converted>0?'$'+converted.toFixed(2):'—';
+  // Persist raw + unit to DB immediately
+  if(!DB.refPriceUnits)DB.refPriceUnits={};
+  if(!DB.refPriceRaw)DB.refPriceRaw={};
+  DB.refPriceRaw[commId]=rawEl.value;
+  DB.refPriceUnits[commId]=unitEl.value;
+  saveDB();
+}
+
+// CSV file processor
 function processFile(file){
-  var res=document.getElementById('fileResult');
-  if(!res)return;
+  var res=document.getElementById('fileResult'); if(!res)return;
   res.textContent='Reading '+file.name+'…';
   if(file.name.match(/\.xlsx?$/i)){
-    // For xlsx: load SheetJS from CDN dynamically
     res.textContent='Loading Excel parser…';
+    if(window.XLSX){readXLSX(file,res);return;}
     var script=document.createElement('script');
     script.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
     script.onload=function(){readXLSX(file,res);};
-    script.onerror=function(){res.innerHTML='<span style="color:var(--r)">Could not load Excel parser. Try saving your file as CSV first.</span>';};
-    document.head.appendChild(script);
-    return;
+    script.onerror=function(){res.innerHTML='<span style="color:var(--r)">Excel parser unavailable — save as CSV and try again.</span>';};
+    document.head.appendChild(script); return;
   }
-  // Plain CSV
   var reader=new FileReader();
-  reader.onload=function(e){
-    var text=e.target.result;
-    processCSVText(text,res);
-  };
+  reader.onload=function(e){ processCSVText(e.target.result,res); };
   reader.readAsText(file);
 }
 
 function processCSVText(text,res){
   var lines=text.split('\n').filter(function(l){return l.trim();});
-  // Skip header if it contains 'commodity' or 'province' etc
-  if(lines.length&&lines[0].toLowerCase().indexOf('commodity')>=0)lines.shift();
   var ta=document.getElementById('pasteTA');
-  if(ta){ta.value=lines.join('\n');}
-  res.innerHTML='<span style="color:var(--g)">✓ '+lines.length+' rows loaded into paste area — click ⚡ Import to apply.</span>';
+  if(ta){ta.value=lines.join('\n'); ta.focus();}
+  res.innerHTML='<span style="color:var(--g)">✓ '+lines.length+' rows loaded into paste area → click ⚡ Import to apply.</span>';
 }
 
 function readXLSX(file,res){
@@ -1017,13 +1157,8 @@ function readXLSX(file,res){
       var wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
       var ws=wb.Sheets[wb.SheetNames[0]];
       var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
-      // Skip header row
-      if(rows.length&&rows[0][0]&&rows[0][0].toString().toLowerCase().indexOf('commodity')>=0)rows.shift();
-      var csv=rows.map(function(r){return r.join('\t');}).join('\n');
-      processCSVText(csv,res);
-    }catch(err){
-      res.innerHTML='<span style="color:var(--r)">Error reading Excel file: '+err.message+'</span>';
-    }
+      processCSVText(rows.map(function(r){return r.join('\t');}).join('\n'),res);
+    }catch(err){res.innerHTML='<span style="color:var(--r)">Error: '+err.message+'</span>';}
   };
   reader.readAsArrayBuffer(file);
 }
